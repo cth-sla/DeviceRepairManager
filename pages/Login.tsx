@@ -154,7 +154,7 @@ export const LoginPage: React.FC = () => {
         
         <div className="px-8 py-5 bg-black/20 border-t border-white/5 text-center">
           <p className="text-[10px] text-slate-500 uppercase tracking-[0.2em] font-bold">
-            © 2026 DeviceMgr Hub • Version 1.0
+            © 2026 • Trần Trà
           </p>
         </div>
       </div>
