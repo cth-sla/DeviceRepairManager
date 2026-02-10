@@ -79,7 +79,7 @@ export const LoginPage: React.FC = () => {
           <div className="inline-flex p-3 rounded-full bg-slate-800 mb-4">
             <Package className="text-blue-500" size={40} />
           </div>
-          <h1 className="text-2xl font-bold text-white">DeviceMgr</h1>
+          <h1 className="text-2xl font-bold text-white">Device Repair Manager</h1>
           <p className="text-slate-400 mt-2">Hệ thống Quản lý Thiết bị</p>
         </div>
 
