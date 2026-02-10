@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { supabase, isSupabaseConfigured } from '../services/client';
 import { Session } from '@supabase/supabase-js';
-import { Loader2, Package } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 
 interface AuthContextType {
   session: Session | null;
@@ -22,8 +22,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // 1. Check active session on startup
     const initSession = async () => {
+      // FALLBACK: If Supabase is not configured, enable Offline Mode immediately
       if (!isSupabaseConfigured) {
+        console.warn("Supabase not configured. Running in Offline Mode (LocalStorage).");
+        // Create a mock session key for persistence in offline mode
         const offlineSession = localStorage.getItem('device_mgr_offline_session');
         if (offlineSession) {
            setSession(JSON.parse(offlineSession));
@@ -36,7 +40,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const { data: { session } } = await supabase.auth.getSession();
         setSession(session);
       } catch (error) {
-        console.error("Error session:", error);
+        console.error("Error checking session:", error);
       } finally {
         setLoading(false);
       }
@@ -44,6 +48,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     initSession();
 
+    // 2. Listen for auth changes (only if configured)
     if (isSupabaseConfigured) {
       const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
         setSession(session);
@@ -65,15 +70,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   return (
     <AuthContext.Provider value={{ session, loading, signOut, isOfflineMode: !isSupabaseConfigured }}>
       {loading ? (
-        <div className="flex h-screen w-screen items-center justify-center bg-slate-900">
-           <div className="flex flex-col items-center gap-6">
-             <div className="p-4 bg-slate-800 rounded-3xl border border-slate-700 shadow-2xl animate-pulse">
-                <Package className="text-blue-500" size={48} />
-             </div>
-             <div className="flex flex-col items-center gap-2">
-                <Loader2 className="animate-spin text-blue-500" size={32} />
-                <p className="text-slate-500 font-bold uppercase tracking-[0.3em] text-[10px] ml-1">Đang khởi tạo</p>
-             </div>
+        <div className="flex h-screen w-screen items-center justify-center bg-slate-100">
+           <div className="flex flex-col items-center gap-3">
+             <Loader2 className="animate-spin text-blue-600" size={48} />
+             <p className="text-slate-500 font-medium">Đang tải dữ liệu...</p>
            </div>
         </div>
       ) : (
