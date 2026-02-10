@@ -152,7 +152,7 @@ export const LoginPage: React.FC = () => {
         
         <div className="px-8 py-4 bg-slate-50 border-t border-slate-100 text-center">
           <p className="text-xs text-slate-500">
-            © 2024 Admin System.
+            © 2026 - Trần Trà.
           </p>
         </div>
       </div>

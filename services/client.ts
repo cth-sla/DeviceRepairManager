@@ -5,8 +5,8 @@ import { createClient } from '@supabase/supabase-js';
 // 2. Copy "Project URL" và "anon public" Key
 // 3. Thay thế vào 2 biến bên dưới:
 
-const SUPABASE_URL = 'https://yzrydnloiidjbrfxwcvh.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl6cnlkbmxvaWlkamJyZnh3Y3ZoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA3MDUxNTUsImV4cCI6MjA4NjI4MTE1NX0.01FPx6H6Pwo21yXwnRqyZIuMF4gtKbn6k_AcmoVWNTM';
+const SUPABASE_URL: string = 'https://yzrydnloiidjbrfxwcvh.supabase.co';
+const SUPABASE_KEY: string = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl6cnlkbmxvaWlkamJyZnh3Y3ZoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA3MDUxNTUsImV4cCI6MjA4NjI4MTE1NX0.01FPx6H6Pwo21yXwnRqyZIuMF4gtKbn6k_AcmoVWNTM';
 
 // --- KIỂM TRA TRẠNG THÁI CẤU HÌNH ---
 // Biến này dùng để xác định app sẽ chạy Online (Supabase) hay Offline (LocalStorage)
