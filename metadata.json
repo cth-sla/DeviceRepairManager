@@ -1,0 +1,5 @@
+{
+  "name": "DeviceRepairManager",
+  "description": "Hệ thống quản lý bảo hành và sửa chữa thiết bị (Codec, Mic, Camera...) chuyên nghiệp.",
+  "requestFramePermissions": []
+}
