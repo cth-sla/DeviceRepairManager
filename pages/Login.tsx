@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { supabase } from '../services/client';
+import { supabase, isSupabaseConfigured } from '../services/client';
 import { useNavigate } from 'react-router-dom';
-import { Package, Mail, Lock, Loader2, AlertCircle } from 'lucide-react';
+import { Package, Mail, Lock, Loader2, AlertCircle, WifiOff } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
 
 export const LoginPage: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -10,11 +11,47 @@ export const LoginPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
 
+  // For updating context state in offline mode
+  // In a real app we might expose a specific login function in context, 
+  // but here we force a reload or rely on the localStorage check in AuthProvider
+  
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
 
+    // --- OFFLINE MODE HANDLER ---
+    if (!isSupabaseConfigured) {
+      setTimeout(() => {
+        // Simple mock validation
+        if (email && password.length >= 4) {
+          const mockSession = {
+            access_token: 'offline-token',
+            token_type: 'bearer',
+            expires_in: 3600,
+            refresh_token: 'offline-refresh',
+            user: {
+              id: 'offline-admin',
+              aud: 'authenticated',
+              role: 'authenticated',
+              email: email,
+              app_metadata: {},
+              user_metadata: {},
+              created_at: new Date().toISOString(),
+            }
+          };
+          localStorage.setItem('device_mgr_offline_session', JSON.stringify(mockSession));
+          // Force page reload to pick up the "session" in AuthContext
+          window.location.reload(); 
+        } else {
+          setError('Mật khẩu demo phải có ít nhất 4 ký tự.');
+          setLoading(false);
+        }
+      }, 800);
+      return;
+    }
+
+    // --- ONLINE SUPABASE HANDLER ---
     try {
       const { error } = await supabase.auth.signInWithPassword({
         email,
@@ -25,15 +62,13 @@ export const LoginPage: React.FC = () => {
         throw error;
       }
       
-      // AuthStateChange in Context will handle the redirect/state update, 
-      // but we can force navigation to be sure
       navigate('/'); 
     } catch (err: any) {
       setError(err.message === 'Invalid login credentials' 
         ? 'Email hoặc mật khẩu không chính xác.' 
         : 'Có lỗi xảy ra khi đăng nhập.');
     } finally {
-      setLoading(false);
+      if (isSupabaseConfigured) setLoading(false);
     }
   };
 
@@ -49,6 +84,17 @@ export const LoginPage: React.FC = () => {
         </div>
 
         <div className="p-8">
+          {!isSupabaseConfigured && (
+            <div className="mb-6 p-3 bg-amber-50 border border-amber-200 rounded-lg flex items-start gap-3 text-amber-800 text-sm">
+              <WifiOff className="shrink-0 mt-0.5" size={18} />
+              <div>
+                <p className="font-semibold">Chế độ Offline (Demo)</p>
+                <p>Hệ thống chưa kết nối Supabase. Dữ liệu sẽ được lưu trên trình duyệt của bạn.</p>
+                <p className="mt-1 text-xs opacity-75">Đăng nhập bằng email bất kỳ.</p>
+              </div>
+            </div>
+          )}
+
           <form onSubmit={handleLogin} className="space-y-6">
             {error && (
               <div className="p-3 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2 text-red-600 text-sm">
@@ -106,7 +152,7 @@ export const LoginPage: React.FC = () => {
         
         <div className="px-8 py-4 bg-slate-50 border-t border-slate-100 text-center">
           <p className="text-xs text-slate-500">
-            © 2024 Admin System. Vui lòng liên hệ quản trị viên nếu quên mật khẩu.
+            © 2024 Admin System.
           </p>
         </div>
       </div>

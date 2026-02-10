@@ -1,5 +1,5 @@
 import React from 'react';
-import { LayoutDashboard, Users, Wrench, Package, Menu, X, Building, ShieldCheck, LogOut } from 'lucide-react';
+import { LayoutDashboard, Users, Wrench, Package, Menu, X, Building, ShieldCheck, LogOut, Wifi, WifiOff } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -10,7 +10,7 @@ interface LayoutProps {
 export const Layout: React.FC<LayoutProps> = ({ children }) => {
   const [isSidebarOpen, setIsSidebarOpen] = React.useState(false);
   const location = useLocation();
-  const { signOut, session } = useAuth();
+  const { signOut, session, isOfflineMode } = useAuth();
 
   const navItems = [
     { label: 'Tổng quan', path: '/', icon: <LayoutDashboard size={20} /> },
@@ -68,7 +68,13 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
           ))}
         </nav>
 
-        <div className="p-4 border-t border-slate-800 bg-slate-900">
+        {/* Status Indicator */}
+        <div className={`px-4 py-2 mx-4 rounded text-xs flex items-center justify-center gap-2 ${isOfflineMode ? 'bg-amber-900/50 text-amber-200' : 'bg-green-900/30 text-green-300'}`}>
+           {isOfflineMode ? <WifiOff size={14} /> : <Wifi size={14} />}
+           <span>{isOfflineMode ? 'Chế độ Offline (Demo)' : 'Đã kết nối Online'}</span>
+        </div>
+
+        <div className="p-4 border-t border-slate-800 bg-slate-900 mt-2">
           <div className="flex items-center gap-3 mb-3 px-2">
             <div className="w-8 h-8 rounded-full bg-blue-900 flex items-center justify-center text-blue-200 font-bold text-xs">
               {session?.user.email?.substring(0,2).toUpperCase()}
