@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { WarrantyTicket, WarrantyStatus, Organization, DeviceType } from '../types';
 import { StorageService } from '../services/storage';
 import { Plus, Search, Filter, AlertCircle, CheckCircle2, Clock, Truck, ChevronRight, X, ChevronLeft, Building2, Coins, Download, Loader2 } from 'lucide-react';
+import { DeviceIcon } from '../components/DeviceIcon';
 
 export const WarrantyPage: React.FC = () => {
   const [tickets, setTickets] = useState<WarrantyTicket[]>([]);
@@ -297,9 +298,12 @@ export const WarrantyPage: React.FC = () => {
                       {/* Cột 3: Thiết bị */}
                       <td className="px-6 py-4">
                         <div className="flex flex-col">
-                           <span className="font-medium text-slate-800">{ticket.deviceType}</span>
+                           <div className="flex items-center gap-2">
+                              <DeviceIcon type={ticket.deviceType} size={16} className="text-slate-500" />
+                              <span className="font-medium text-slate-800">{ticket.deviceType}</span>
+                           </div>
                           {ticket.serialNumber && (
-                             <span className="text-xs font-mono text-slate-600 bg-slate-50 px-1 rounded border border-slate-100 w-fit mt-1">
+                             <span className="text-xs font-mono text-slate-600 bg-slate-50 px-1 rounded border border-slate-100 w-fit mt-1 ml-6">
                               SN: {ticket.serialNumber}
                             </span>
                           )}

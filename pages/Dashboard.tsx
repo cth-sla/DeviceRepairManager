@@ -6,6 +6,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip
 } from 'recharts';
 import { CheckCircle2, Clock, AlertCircle, Package, History, Loader2 } from 'lucide-react';
+import { DeviceIcon } from '../components/DeviceIcon';
 
 export const DashboardPage: React.FC = () => {
   const [stats, setStats] = useState({
@@ -218,8 +219,11 @@ export const DashboardPage: React.FC = () => {
                   <tr key={t.id} className="hover:bg-slate-50">
                     <td className="px-6 py-4 font-medium text-slate-700">{t.receiveDate}</td>
                     <td className="px-6 py-4">
-                      <span className="block text-slate-900">{t.deviceType}</span>
-                      {t.serialNumber && <span className="text-xs text-slate-500">SN: {t.serialNumber}</span>}
+                      <div className="flex items-center gap-2 mb-0.5">
+                        <DeviceIcon type={t.deviceType} size={16} className="text-slate-500" />
+                        <span className="font-medium text-slate-900">{t.deviceType}</span>
+                      </div>
+                      {t.serialNumber && <span className="text-xs text-slate-500 pl-6 block">SN: {t.serialNumber}</span>}
                     </td>
                     <td className="px-6 py-4">
                       <span className="block text-slate-900">{getCustomerName(t.customerId)}</span>

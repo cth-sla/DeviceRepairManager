@@ -3,6 +3,7 @@ import { Customer, RepairTicket, DeviceType, RepairStatus, ShippingMethod, Organ
 import { StorageService } from '../services/storage';
 import { Plus, Search, Filter, AlertCircle, CheckCircle2, Clock, Truck, ChevronRight, X, History, Download, ChevronLeft, Loader2 } from 'lucide-react';
 import { HistoryModal } from '../components/HistoryModal';
+import { DeviceIcon } from '../components/DeviceIcon';
 
 export const RepairsPage: React.FC = () => {
   const [tickets, setTickets] = useState<RepairTicket[]>([]);
@@ -326,7 +327,8 @@ export const RepairsPage: React.FC = () => {
                       {/* Cột 3: Thiết bị */}
                       <td className="px-6 py-4">
                         <div className="flex flex-col">
-                           <span className="inline-flex items-center px-2 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-200 text-xs font-medium w-fit mb-1">
+                           <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded bg-slate-100 text-slate-700 border border-slate-200 text-xs font-medium w-fit mb-1">
+                            <DeviceIcon type={ticket.deviceType} size={14} className="text-slate-500" />
                             {ticket.deviceType}
                           </span>
                           {ticket.serialNumber && (

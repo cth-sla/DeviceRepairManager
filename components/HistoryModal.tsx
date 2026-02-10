@@ -1,6 +1,7 @@
 import React from 'react';
 import { RepairTicket, RepairStatus, Customer, Organization } from '../types';
 import { X, Calendar, CheckCircle2, AlertCircle, Clock, FileText } from 'lucide-react';
+import { DeviceIcon } from './DeviceIcon';
 
 interface HistoryModalProps {
   title: string;
@@ -83,7 +84,10 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm mt-3">
                       <div>
                         <p className="text-xs text-slate-500 uppercase tracking-wide font-semibold mb-1">Thiết bị</p>
-                        <p className="font-medium text-slate-800">{ticket.deviceType}</p>
+                        <div className="flex items-center gap-1.5 mb-1">
+                          <DeviceIcon type={ticket.deviceType} size={14} className="text-slate-500" />
+                          <p className="font-medium text-slate-800">{ticket.deviceType}</p>
+                        </div>
                         {ticket.serialNumber && (
                            <p className="text-slate-500 text-xs">SN: {ticket.serialNumber}</p>
                         )}
