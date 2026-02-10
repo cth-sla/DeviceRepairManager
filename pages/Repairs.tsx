@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Customer, RepairTicket, DeviceType, RepairStatus, ShippingMethod, Organization } from '../types';
 import { StorageService } from '../services/storage';
-import { Plus, Search, Filter, AlertCircle, CheckCircle2, Clock, Truck, ChevronRight, X, History, Download, ChevronLeft, Loader2 } from 'lucide-react';
+import { Plus, Search, Filter, AlertCircle, CheckCircle2, Clock, Truck, ChevronRight, X, History, Download, ChevronLeft, Loader2, Trash2 } from 'lucide-react';
 import { HistoryModal } from '../components/HistoryModal';
 import { DeviceIcon } from '../components/DeviceIcon';
 
@@ -58,6 +58,20 @@ export const RepairsPage: React.FC = () => {
     const org = organizations.find(o => o.id === customer.organizationId);
     return org ? org.name : 'Unknown Org';
   }
+
+  const handleDelete = async (e: React.MouseEvent, id: string) => {
+    e.stopPropagation(); // Prevent opening the modal
+    if (window.confirm('Bạn có chắc chắn muốn xóa phiếu sửa chữa này không?')) {
+      try {
+        await StorageService.deleteTicket(id);
+        await fetchData();
+        if (isModalOpen) closeModal();
+      } catch (err) {
+        console.error(err);
+        alert('Có lỗi xảy ra khi xóa phiếu.');
+      }
+    }
+  };
 
   // --- EXPORT FUNCTIONALITY ---
   const handleExport = () => {
@@ -127,7 +141,7 @@ export const RepairsPage: React.FC = () => {
     const newTicket: RepairTicket = {
       id: editingId || crypto.randomUUID(),
       customerId: formData.customerId,
-      deviceType: formData.deviceType,
+      deviceType: formData.deviceType as DeviceType,
       serialNumber: formData.serialNumber,
       deviceCondition: formData.deviceCondition || 'Không rõ',
       receiveDate: formData.receiveDate,
@@ -135,7 +149,7 @@ export const RepairsPage: React.FC = () => {
       
       returnDate: formData.returnDate,
       returnNote: formData.returnNote,
-      shippingMethod: formData.shippingMethod,
+      shippingMethod: formData.shippingMethod as ShippingMethod,
       
       createdAt: editingId ? (tickets.find(t => t.id === editingId)?.createdAt || Date.now()) : Date.now(),
       updatedAt: Date.now()
@@ -377,6 +391,13 @@ export const RepairsPage: React.FC = () => {
                           >
                             <History size={18} />
                           </button>
+                          <button 
+                            onClick={(e) => handleDelete(e, ticket.id)}
+                            className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors"
+                            title="Xóa phiếu"
+                          >
+                            <Trash2 size={18} />
+                          </button>
                           <ChevronRight className="text-slate-300 group-hover:text-blue-500 transition-colors" size={20} />
                         </div>
                       </td>
@@ -592,19 +613,32 @@ export const RepairsPage: React.FC = () => {
               </div>
             </div>
 
-            <div className="px-6 py-4 bg-slate-50 border-t border-slate-200 flex justify-end gap-3 rounded-b-xl sticky bottom-0">
-              <button 
-                onClick={closeModal}
-                className="px-4 py-2 text-slate-600 hover:bg-slate-200 rounded-lg transition-colors font-medium"
-              >
-                Hủy bỏ
-              </button>
-              <button 
-                onClick={handleSave}
-                className="px-4 py-2 bg-blue-600 text-white hover:bg-blue-700 rounded-lg transition-colors font-medium shadow-sm"
-              >
-                Lưu Phiếu
-              </button>
+            <div className="px-6 py-4 bg-slate-50 border-t border-slate-200 flex justify-between gap-3 rounded-b-xl sticky bottom-0">
+              {editingId ? (
+                <button 
+                  onClick={(e) => handleDelete(e, editingId)}
+                  className="px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors font-medium flex items-center gap-2"
+                >
+                  <Trash2 size={16} />
+                  Xóa Phiếu
+                </button>
+              ) : (
+                <div></div>
+              )}
+              <div className="flex gap-3">
+                <button 
+                  onClick={closeModal}
+                  className="px-4 py-2 text-slate-600 hover:bg-slate-200 rounded-lg transition-colors font-medium"
+                >
+                  Hủy bỏ
+                </button>
+                <button 
+                  onClick={handleSave}
+                  className="px-4 py-2 bg-blue-600 text-white hover:bg-blue-700 rounded-lg transition-colors font-medium shadow-sm"
+                >
+                  Lưu Phiếu
+                </button>
+              </div>
             </div>
           </div>
         </div>

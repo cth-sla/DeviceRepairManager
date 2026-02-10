@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Layout } from './components/Layout';
@@ -10,7 +11,8 @@ import { LoginPage } from './pages/Login';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 
 // Component to protect routes that require login
-const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
+// Using React.FC to ensure children property is correctly recognized in JSX usage
+const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { session } = useAuth();
   
   if (!session) {
@@ -21,7 +23,8 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 };
 
 // Component to redirect logged-in users away from login page
-const PublicRoute = ({ children }: { children: React.ReactNode }) => {
+// Using React.FC to ensure children property is correctly recognized in JSX usage
+const PublicRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { session } = useAuth();
   
   if (session) {

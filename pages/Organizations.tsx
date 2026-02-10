@@ -1,7 +1,8 @@
+
 import React, { useState, useEffect } from 'react';
 import { Organization } from '../types';
 import { StorageService } from '../services/storage';
-import { Plus, Search, MapPin, Building2, Trash2, Edit2, X, Loader2 } from 'lucide-react';
+import { Plus, Search, MapPin, Building2, Trash2, Edit2, X, Loader2, AlertTriangle } from 'lucide-react';
 
 export const OrganizationsPage: React.FC = () => {
   const [organizations, setOrganizations] = useState<Organization[]>([]);
@@ -51,13 +52,17 @@ export const OrganizationsPage: React.FC = () => {
   };
 
   const handleDelete = async (id: string) => {
-    if (window.confirm('Bạn có chắc chắn muốn xóa đơn vị này?')) {
+    if (window.confirm('CẢNH BÁO: Xóa đơn vị này có thể xóa tất cả Khách hàng và Phiếu liên quan nếu bạn đã thiết lập xóa bắc cầu. Bạn vẫn muốn xóa?')) {
       try {
         await StorageService.deleteOrganization(id);
         await fetchData();
-      } catch (error) {
+      } catch (error: any) {
         console.error(error);
-        alert('Có lỗi xảy ra khi xóa dữ liệu');
+        if (error.code === '23503') {
+          alert('KHÔNG THỂ XÓA: Đơn vị này hiện có các Khách hàng hoặc Phiếu bảo hành liên quan. Vui lòng xóa các dữ liệu liên quan trước.');
+        } else {
+          alert('Có lỗi xảy ra khi xóa dữ liệu. Chi tiết: ' + (error.message || 'Lỗi DB'));
+        }
       }
     }
   };
@@ -156,12 +161,14 @@ export const OrganizationsPage: React.FC = () => {
                           <button 
                             onClick={() => openModal(org)}
                             className="p-1.5 text-blue-600 hover:bg-blue-50 rounded"
+                            title="Chỉnh sửa"
                           >
                             <Edit2 size={16} />
                           </button>
                           <button 
                             onClick={() => handleDelete(org.id)}
                             className="p-1.5 text-red-600 hover:bg-red-50 rounded"
+                            title="Xóa"
                           >
                             <Trash2 size={16} />
                           </button>

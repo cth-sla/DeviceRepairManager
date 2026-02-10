@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Customer, RepairTicket, Organization } from '../types';
 import { StorageService } from '../services/storage';
@@ -75,13 +76,17 @@ export const CustomersPage: React.FC = () => {
   };
 
   const handleDelete = async (id: string) => {
-    if (window.confirm('Bạn có chắc chắn muốn xóa khách hàng này?')) {
+    if (window.confirm('Bạn có chắc chắn muốn xóa khách hàng này? Lưu ý: Mọi phiếu sửa chữa của khách hàng này cũng sẽ bị xóa.')) {
       try {
         await StorageService.deleteCustomer(id);
         await fetchData();
-      } catch (e) {
-        console.error(e);
-        alert('Lỗi khi xóa khách hàng');
+      } catch (error: any) {
+        console.error(error);
+        if (error.code === '23503') {
+          alert('KHÔNG THỂ XÓA: Khách hàng này đang có các Phiếu sửa chữa liên quan. Vui lòng xóa các Phiếu đó trước.');
+        } else {
+          alert('Có lỗi xảy ra khi xóa khách hàng. Chi tiết: ' + (error.message || 'Lỗi DB'));
+        }
       }
     }
   };
@@ -263,12 +268,6 @@ export const CustomersPage: React.FC = () => {
                       <option key={org.id} value={org.id}>{org.name}</option>
                     ))}
                  </select>
-                 {organizations.length === 0 && (
-                   <p className="text-xs text-red-500 mt-1 flex items-center gap-1">
-                     <AlertCircleIcon />
-                     Chưa có đơn vị nào. <Link to="/organizations" className="underline font-bold">Thêm Đơn vị ngay</Link>
-                   </p>
-                 )}
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -326,9 +325,3 @@ export const CustomersPage: React.FC = () => {
     </div>
   );
 };
-
-const AlertCircleIcon = () => (
-  <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-  </svg>
-);

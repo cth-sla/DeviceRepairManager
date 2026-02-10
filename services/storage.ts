@@ -1,3 +1,4 @@
+
 import { supabase, isSupabaseConfigured } from './client';
 import { Customer, RepairTicket, Organization, WarrantyTicket } from '../types';
 
@@ -40,12 +41,13 @@ export const StorageService = {
     if (!isSupabaseConfigured) return localDB.get<Organization>(LS_KEYS.ORGS);
 
     const { data, error } = await supabase.from('organizations').select('*').order('created_at', { ascending: false });
-    if (error) { console.error(error); return []; }
+    if (error) { console.error('Error fetching orgs:', error); return []; }
     
-    // Map DB created_at to TS createdAt
     return data?.map((row: any) => ({
-      ...row,
-      createdAt: row.created_at || row.createdAt // Handle both cases just in case
+      id: row.id,
+      name: row.name,
+      address: row.address,
+      createdAt: row.created_at || row.createdAt
     })) || [];
   },
 
@@ -75,7 +77,10 @@ export const StorageService = {
     if (!isSupabaseConfigured) return localDB.delete(LS_KEYS.ORGS, id);
 
     const { error } = await supabase.from('organizations').delete().eq('id', id);
-    if (error) throw error;
+    if (error) {
+      console.error('Delete Organization Error:', error);
+      throw error;
+    }
   },
 
   // --- CUSTOMERS ---
@@ -83,7 +88,7 @@ export const StorageService = {
     if (!isSupabaseConfigured) return localDB.get<Customer>(LS_KEYS.CUSTOMERS);
 
     const { data, error } = await supabase.from('customers').select('*').order('created_at', { ascending: false });
-    if (error) { console.error(error); return []; }
+    if (error) { console.error('Error fetching customers:', error); return []; }
     
     return data?.map((row: any) => ({
       id: row.id,
@@ -127,7 +132,10 @@ export const StorageService = {
     if (!isSupabaseConfigured) return localDB.delete(LS_KEYS.CUSTOMERS, id);
     
     const { error } = await supabase.from('customers').delete().eq('id', id);
-    if (error) throw error;
+    if (error) {
+      console.error('Delete Customer Error:', error);
+      throw error;
+    }
   },
 
   // --- REPAIR TICKETS ---
@@ -135,7 +143,7 @@ export const StorageService = {
     if (!isSupabaseConfigured) return localDB.get<RepairTicket>(LS_KEYS.TICKETS);
 
     const { data, error } = await supabase.from('tickets').select('*').order('created_at', { ascending: false });
-    if (error) { console.error(error); return []; }
+    if (error) { console.error('Error fetching tickets:', error); return []; }
 
     return data?.map((row: any) => ({
       id: row.id,
@@ -197,7 +205,10 @@ export const StorageService = {
     if (!isSupabaseConfigured) return localDB.delete(LS_KEYS.TICKETS, id);
 
     const { error } = await supabase.from('tickets').delete().eq('id', id);
-    if (error) throw error;
+    if (error) {
+      console.error('Delete Ticket Error:', error);
+      throw error;
+    }
   },
 
   // --- WARRANTY TICKETS ---
@@ -205,7 +216,7 @@ export const StorageService = {
     if (!isSupabaseConfigured) return localDB.get<WarrantyTicket>(LS_KEYS.WARRANTIES);
 
     const { data, error } = await supabase.from('warranties').select('*').order('created_at', { ascending: false });
-    if (error) { console.error(error); return []; }
+    if (error) { console.error('Error fetching warranties:', error); return []; }
 
     return data?.map((row: any) => ({
       id: row.id,
@@ -267,6 +278,9 @@ export const StorageService = {
     if (!isSupabaseConfigured) return localDB.delete(LS_KEYS.WARRANTIES, id);
 
     const { error } = await supabase.from('warranties').delete().eq('id', id);
-    if (error) throw error;
+    if (error) {
+      console.error('Delete Warranty Error:', error);
+      throw error;
+    }
   }
 };
