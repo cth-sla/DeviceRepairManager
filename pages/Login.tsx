@@ -11,19 +11,13 @@ export const LoginPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
 
-  // For updating context state in offline mode
-  // In a real app we might expose a specific login function in context, 
-  // but here we force a reload or rely on the localStorage check in AuthProvider
-  
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
 
-    // --- OFFLINE MODE HANDLER ---
     if (!isSupabaseConfigured) {
       setTimeout(() => {
-        // Simple mock validation
         if (email && password.length >= 4) {
           const mockSession = {
             access_token: 'offline-token',
@@ -41,7 +35,6 @@ export const LoginPage: React.FC = () => {
             }
           };
           localStorage.setItem('device_mgr_offline_session', JSON.stringify(mockSession));
-          // Force page reload to pick up the "session" in AuthContext
           window.location.reload(); 
         } else {
           setError('Mật khẩu demo phải có ít nhất 4 ký tự.');
@@ -51,7 +44,6 @@ export const LoginPage: React.FC = () => {
       return;
     }
 
-    // --- ONLINE SUPABASE HANDLER ---
     try {
       const { error } = await supabase.auth.signInWithPassword({
         email,
@@ -73,14 +65,14 @@ export const LoginPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-100 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-red-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden">
-        <div className="p-8 bg-slate-900 text-center">
-          <div className="inline-flex p-3 rounded-full bg-slate-800 mb-4">
-            <Package className="text-blue-500" size={40} />
+        <div className="p-8 bg-secondary text-center">
+          <div className="inline-flex p-3 rounded-full bg-red-900/50 mb-4">
+            <Package className="text-red-500" size={40} />
           </div>
           <h1 className="text-2xl font-bold text-white">Device Repair Manager</h1>
-          <p className="text-slate-400 mt-2">Hệ thống Quản lý Thiết bị</p>
+          <p className="text-red-200 mt-2">Hệ thống Quản lý Thiết bị</p>
         </div>
 
         <div className="p-8">
@@ -110,7 +102,7 @@ export const LoginPage: React.FC = () => {
                 <input
                   type="email"
                   required
-                  className="w-full pl-10 pr-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all"
+                  className="w-full pl-10 pr-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:outline-none transition-all"
                   placeholder="admin@example.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
@@ -125,7 +117,7 @@ export const LoginPage: React.FC = () => {
                 <input
                   type="password"
                   required
-                  className="w-full pl-10 pr-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all"
+                  className="w-full pl-10 pr-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:outline-none transition-all"
                   placeholder="••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
@@ -136,7 +128,7 @@ export const LoginPage: React.FC = () => {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 rounded-lg transition-colors flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
+              className="w-full bg-accent hover:bg-red-700 text-white font-semibold py-2.5 rounded-lg transition-colors flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
             >
               {loading ? (
                 <>
@@ -150,7 +142,7 @@ export const LoginPage: React.FC = () => {
           </form>
         </div>
         
-        <div className="px-8 py-4 bg-slate-50 border-t border-slate-100 text-center">
+        <div className="px-8 py-4 bg-red-50 border-t border-red-100 text-center">
           <p className="text-xs text-slate-500">
             © 2026 Trần Trà.
           </p>

@@ -36,7 +36,6 @@ export const DashboardPage: React.FC = () => {
       setCustomers(loadedCustomers);
       setOrganizations(loadedOrgs);
 
-      // Calc Status Stats
       setStats({
         total: loadedTickets.length,
         received: loadedTickets.filter(t => t.status === RepairStatus.RECEIVED).length,
@@ -44,7 +43,6 @@ export const DashboardPage: React.FC = () => {
         returned: loadedTickets.filter(t => t.status === RepairStatus.RETURNED).length,
       });
 
-      // Calc Device Type Stats
       const typeCounts: Record<string, number> = {};
       loadedTickets.forEach(t => {
         typeCounts[t.deviceType] = (typeCounts[t.deviceType] || 0) + 1;
@@ -69,17 +67,14 @@ export const DashboardPage: React.FC = () => {
     return org ? org.name : '';
   };
 
-  // Data for Status Bar Chart
   const statusData = [
-    { name: 'Đã nhận', value: stats.received, color: '#3b82f6' }, // Blue
+    { name: 'Đã nhận', value: stats.received, color: '#ef4444' }, // Red 500
     { name: 'Đang xử lý', value: stats.processing, color: '#f59e0b' }, // Amber
     { name: 'Đã trả', value: stats.returned, color: '#22c55e' }, // Green
   ];
 
-  // Colors for Device Pie Chart
-  const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d'];
+  const COLORS = ['#7f1d1d', '#dc2626', '#f87171', '#ef4444', '#b91c1c', '#991b1b'];
 
-  // Recent Tickets (Top 5 newest)
   const recentTickets = [...tickets]
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
     .slice(0, 5);
@@ -87,7 +82,7 @@ export const DashboardPage: React.FC = () => {
   if (isLoading) {
     return (
       <div className="flex h-[50vh] items-center justify-center">
-        <Loader2 className="animate-spin text-blue-600" size={48} />
+        <Loader2 className="animate-spin text-red-600" size={48} />
       </div>
     );
   }
@@ -99,20 +94,19 @@ export const DashboardPage: React.FC = () => {
           <p className="text-slate-500">Báo cáo tình trạng và số liệu hoạt động</p>
         </div>
 
-      {/* KPI Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard 
           title="Tổng phiếu" 
           value={stats.total} 
-          icon={<Package className="text-slate-600" />} 
-          bg="bg-slate-100" 
+          icon={<Package className="text-red-900" />} 
+          bg="bg-red-100" 
         />
         <StatCard 
           title="Mới tiếp nhận" 
           value={stats.received} 
-          icon={<AlertCircle className="text-blue-600" />} 
-          bg="bg-blue-50" 
-          borderColor="border-blue-200"
+          icon={<AlertCircle className="text-red-600" />} 
+          bg="bg-red-50" 
+          borderColor="border-red-200"
         />
         <StatCard 
           title="Đang xử lý" 
@@ -130,11 +124,8 @@ export const DashboardPage: React.FC = () => {
         />
       </div>
 
-      {/* Charts Section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        
-        {/* Status Bar Chart */}
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 min-h-[350px]">
+        <div className="bg-white p-6 rounded-xl shadow-sm border border-red-100 min-h-[350px]">
           <h3 className="text-lg font-semibold text-slate-800 mb-4">Thống kê theo Trạng thái</h3>
           {stats.total === 0 ? (
             <div className="h-64 flex items-center justify-center text-slate-400">Chưa có dữ liệu</div>
@@ -150,7 +141,7 @@ export const DashboardPage: React.FC = () => {
                 <YAxis dataKey="name" type="category" width={80} tick={{fontSize: 12}} />
                 <Tooltip cursor={{fill: 'transparent'}} />
                 <Legend />
-                <Bar dataKey="value" name="Số lượng" fill="#3b82f6" radius={[0, 4, 4, 0]}>
+                <Bar dataKey="value" name="Số lượng" fill="#dc2626" radius={[0, 4, 4, 0]}>
                   {statusData.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={entry.color} />
                   ))}
@@ -160,8 +151,7 @@ export const DashboardPage: React.FC = () => {
           )}
         </div>
         
-        {/* Device Type Pie Chart */}
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 min-h-[350px]">
+        <div className="bg-white p-6 rounded-xl shadow-sm border border-red-100 min-h-[350px]">
           <h3 className="text-lg font-semibold text-slate-800 mb-4">Tỷ lệ Loại thiết bị</h3>
           {stats.total === 0 ? (
             <div className="h-64 flex items-center justify-center text-slate-400">Chưa có dữ liệu</div>
@@ -189,17 +179,16 @@ export const DashboardPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Recent History Table */}
-      <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-        <div className="p-6 border-b border-slate-200 flex items-center justify-between bg-slate-50">
+      <div className="bg-white rounded-xl shadow-sm border border-red-100 overflow-hidden">
+        <div className="p-6 border-b border-red-100 flex items-center justify-between bg-red-50/30">
           <div className="flex items-center gap-2">
-            <History className="text-slate-500" size={20} />
+            <History className="text-red-500" size={20} />
             <h3 className="text-lg font-semibold text-slate-800">Phiếu sửa chữa gần đây</h3>
           </div>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
-            <thead className="bg-slate-50 text-slate-600 font-medium">
+            <thead className="bg-red-50/50 text-slate-600 font-medium">
               <tr>
                 <th className="px-6 py-3">Ngày nhận</th>
                 <th className="px-6 py-3">Thiết bị</th>
@@ -207,7 +196,7 @@ export const DashboardPage: React.FC = () => {
                 <th className="px-6 py-3">Trạng thái</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-200">
+            <tbody className="divide-y divide-red-100">
               {recentTickets.length === 0 ? (
                 <tr>
                   <td colSpan={4} className="px-6 py-8 text-center text-slate-500">
@@ -216,11 +205,11 @@ export const DashboardPage: React.FC = () => {
                 </tr>
               ) : (
                 recentTickets.map((t) => (
-                  <tr key={t.id} className="hover:bg-slate-50">
+                  <tr key={t.id} className="hover:bg-red-50/30 transition-colors">
                     <td className="px-6 py-4 font-medium text-slate-700">{t.receiveDate}</td>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2 mb-0.5">
-                        <DeviceIcon type={t.deviceType} size={16} className="text-slate-500" />
+                        <DeviceIcon type={t.deviceType} size={16} className="text-red-500" />
                         <span className="font-medium text-slate-900">{t.deviceType}</span>
                       </div>
                       {t.serialNumber && <span className="text-xs text-slate-500 pl-6 block">SN: {t.serialNumber}</span>}
@@ -259,7 +248,7 @@ const StatCard = ({ title, value, icon, bg, borderColor = "border-transparent" }
 
 const StatusBadge = ({ status }: { status: RepairStatus }) => {
   const colors = {
-    [RepairStatus.RECEIVED]: 'bg-blue-100 text-blue-700',
+    [RepairStatus.RECEIVED]: 'bg-red-100 text-red-700',
     [RepairStatus.PROCESSING]: 'bg-amber-100 text-amber-700',
     [RepairStatus.RETURNED]: 'bg-green-100 text-green-700',
   };

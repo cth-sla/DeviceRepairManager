@@ -23,7 +23,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   const isActive = (path: string) => location.pathname === path;
 
   return (
-    <div className="flex h-screen bg-slate-100 overflow-hidden">
+    <div className="flex h-screen bg-red-50 overflow-hidden">
       {/* Mobile Sidebar Overlay */}
       {isSidebarOpen && (
         <div 
@@ -35,13 +35,13 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
       {/* Sidebar */}
       <aside 
         className={`
-          fixed lg:static inset-y-0 left-0 z-30 w-64 bg-slate-900 text-white transform transition-transform duration-200 ease-in-out flex flex-col
+          fixed lg:static inset-y-0 left-0 z-30 w-64 bg-secondary text-white transform transition-transform duration-200 ease-in-out flex flex-col
           ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
         `}
       >
-        <div className="flex items-center justify-between p-6 border-b border-slate-700">
+        <div className="flex items-center justify-between p-6 border-b border-red-900/50">
           <div className="flex items-center space-x-2">
-            <Package className="text-blue-500" size={28} />
+            <Package className="text-red-500" size={28} />
             <span className="text-xl font-bold">DeviceMgr</span>
           </div>
           <button onClick={() => setIsSidebarOpen(false)} className="lg:hidden text-slate-400 hover:text-white">
@@ -58,8 +58,8 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
               className={`
                 flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors
                 ${isActive(item.path) 
-                  ? 'bg-blue-600 text-white shadow-lg' 
-                  : 'text-slate-300 hover:bg-slate-800 hover:text-white'}
+                  ? 'bg-accent text-white shadow-lg' 
+                  : 'text-red-200 hover:bg-red-900/50 hover:text-white'}
               `}
             >
               {item.icon}
@@ -74,19 +74,19 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
            <span>{isOfflineMode ? 'Chế độ Offline (Demo)' : 'Đã kết nối Online'}</span>
         </div>
 
-        <div className="p-4 border-t border-slate-800 bg-slate-900 mt-2">
+        <div className="p-4 border-t border-red-900/50 bg-secondary mt-2">
           <div className="flex items-center gap-3 mb-3 px-2">
-            <div className="w-8 h-8 rounded-full bg-blue-900 flex items-center justify-center text-blue-200 font-bold text-xs">
+            <div className="w-8 h-8 rounded-full bg-red-800 flex items-center justify-center text-red-200 font-bold text-xs">
               {session?.user.email?.substring(0,2).toUpperCase()}
             </div>
             <div className="flex-1 overflow-hidden">
               <p className="text-sm font-medium text-white truncate">{session?.user.email}</p>
-              <p className="text-xs text-slate-400">Administrator</p>
+              <p className="text-xs text-red-400">Administrator</p>
             </div>
           </div>
           <button 
             onClick={() => signOut()}
-            className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg transition-colors text-sm"
+            className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-red-900/50 hover:bg-red-800 text-red-200 rounded-lg transition-colors text-sm"
           >
             <LogOut size={16} />
             Đăng xuất
@@ -96,10 +96,10 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden">
-        <header className="bg-white shadow-sm z-10 p-4 lg:hidden flex items-center">
+        <header className="bg-white shadow-sm z-10 p-4 lg:hidden flex items-center border-b border-red-100">
           <button 
             onClick={() => setIsSidebarOpen(true)}
-            className="p-2 rounded-md text-slate-600 hover:bg-slate-100"
+            className="p-2 rounded-md text-slate-600 hover:bg-red-50"
           >
             <Menu size={24} />
           </button>

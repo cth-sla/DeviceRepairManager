@@ -1,10 +1,8 @@
-
 import React, { useState, useEffect } from 'react';
 import { Customer, RepairTicket, Organization } from '../types';
 import { StorageService } from '../services/storage';
 import { Plus, Search, MapPin, Phone, Building2, Trash2, Edit2, X, History, Loader2 } from 'lucide-react';
 import { HistoryModal } from '../components/HistoryModal';
-import { Link } from 'react-router-dom';
 
 export const CustomersPage: React.FC = () => {
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -76,16 +74,16 @@ export const CustomersPage: React.FC = () => {
   };
 
   const handleDelete = async (id: string) => {
-    if (window.confirm('Bạn có chắc chắn muốn xóa khách hàng này? Lưu ý: Mọi phiếu sửa chữa của khách hàng này cũng sẽ bị xóa.')) {
+    if (window.confirm('Bạn có chắc chắn muốn xóa khách hàng này?')) {
       try {
         await StorageService.deleteCustomer(id);
         await fetchData();
       } catch (error: any) {
         console.error(error);
         if (error.code === '23503') {
-          alert('KHÔNG THỂ XÓA: Khách hàng này đang có các Phiếu sửa chữa liên quan. Vui lòng xóa các Phiếu đó trước.');
+          alert('KHÔNG THỂ XÓA: Khách hàng này đang có dữ liệu liên quan. Vui lòng kiểm tra lại.');
         } else {
-          alert('Có lỗi xảy ra khi xóa khách hàng. Chi tiết: ' + (error.message || 'Lỗi DB'));
+          alert('Có lỗi xảy ra khi xóa khách hàng.');
         }
       }
     }
@@ -131,15 +129,15 @@ export const CustomersPage: React.FC = () => {
         </div>
         <button 
           onClick={() => openModal()}
-          className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors shadow-sm"
+          className="flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition-colors shadow-sm font-semibold"
         >
           <Plus size={18} />
           <span>Thêm Khách hàng</span>
         </button>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-        <div className="p-4 border-b border-slate-200 bg-slate-50">
+      <div className="bg-white rounded-xl shadow-sm border border-red-100 overflow-hidden">
+        <div className="p-4 border-b border-red-100 bg-red-50/30">
           <div className="relative max-w-md">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
             <input 
@@ -147,7 +145,7 @@ export const CustomersPage: React.FC = () => {
               placeholder="Tìm kiếm theo tên, đơn vị..." 
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full pl-10 pr-4 py-2 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-red-500"
             />
           </div>
         </div>
@@ -155,11 +153,11 @@ export const CustomersPage: React.FC = () => {
         <div className="overflow-x-auto min-h-[200px]">
           {isLoading ? (
             <div className="flex justify-center py-12">
-               <Loader2 className="animate-spin text-blue-600" size={32} />
+               <Loader2 className="animate-spin text-red-600" size={32} />
             </div>
           ) : (
             <table className="w-full text-left text-sm">
-              <thead className="bg-slate-50 text-slate-600 font-medium">
+              <thead className="bg-red-50/50 text-slate-600 font-medium">
                 <tr>
                   <th className="px-6 py-3">Họ và Tên</th>
                   <th className="px-6 py-3">Đơn vị (Tổ chức)</th>
@@ -168,34 +166,34 @@ export const CustomersPage: React.FC = () => {
                   <th className="px-6 py-3 text-right">Thao tác</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-200">
+              <tbody className="divide-y divide-red-100">
                 {filteredCustomers.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="px-6 py-8 text-center text-slate-500">
+                    <td colSpan={5} className="px-6 py-8 text-center text-slate-500 italic">
                       Chưa có dữ liệu khách hàng.
                     </td>
                   </tr>
                 ) : (
                   filteredCustomers.map((customer) => (
-                    <tr key={customer.id} className="hover:bg-slate-50 transition-colors">
+                    <tr key={customer.id} className="hover:bg-red-50/20 transition-colors">
                       <td className="px-6 py-4">
-                        <div className="font-semibold text-slate-900">{customer.fullName}</div>
+                        <div className="font-bold text-slate-900">{customer.fullName}</div>
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-1.5 text-slate-700 font-medium">
-                          <Building2 size={14} className="text-blue-500" />
+                          <Building2 size={14} className="text-red-500" />
                           {getOrgName(customer.organizationId)}
                         </div>
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-2 text-slate-600">
-                          <Phone size={14} className="text-slate-400" />
+                          <Phone size={14} className="text-red-400" />
                           {customer.phone || '---'}
                         </div>
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-2 text-slate-600 max-w-xs truncate">
-                          <MapPin size={14} className="text-slate-400" />
+                          <MapPin size={14} className="text-red-400" />
                           {customer.address || '---'}
                         </div>
                       </td>
@@ -203,21 +201,21 @@ export const CustomersPage: React.FC = () => {
                         <div className="flex justify-end gap-2">
                           <button 
                             onClick={() => openHistory(customer)}
-                            className="p-1.5 text-amber-600 hover:bg-amber-50 rounded"
-                            title="Xem lịch sử sửa chữa"
+                            className="p-1.5 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors"
+                            title="Lịch sử"
                           >
                             <History size={16} />
                           </button>
                           <button 
                             onClick={() => openModal(customer)}
-                            className="p-1.5 text-blue-600 hover:bg-blue-50 rounded"
+                            className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                             title="Chỉnh sửa"
                           >
                             <Edit2 size={16} />
                           </button>
                           <button 
                             onClick={() => handleDelete(customer.id)}
-                            className="p-1.5 text-red-600 hover:bg-red-50 rounded"
+                            className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                             title="Xóa"
                           >
                             <Trash2 size={16} />
@@ -239,15 +237,15 @@ export const CustomersPage: React.FC = () => {
         tickets={customerTickets}
         customers={customers}
         organizations={organizations}
-        title={`Lịch sử: ${historyCustomer?.fullName} - ${getOrgName(historyCustomer?.organizationId || '')}`}
+        title={`Lịch sử: ${historyCustomer?.fullName}`}
       />
 
       {/* Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-lg overflow-hidden">
-            <div className="px-6 py-4 border-b border-slate-200 flex justify-between items-center bg-slate-50">
-              <h3 className="font-semibold text-lg text-slate-800">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="px-6 py-4 border-b border-red-100 flex justify-between items-center bg-red-50">
+              <h3 className="font-bold text-lg text-red-900">
                 {editingId ? 'Cập nhật thông tin' : 'Thêm khách hàng mới'}
               </h3>
               <button onClick={closeModal} className="text-slate-400 hover:text-slate-600">
@@ -257,9 +255,9 @@ export const CustomersPage: React.FC = () => {
             
             <div className="p-6 space-y-4">
               <div className="space-y-1">
-                 <label className="text-sm font-medium text-slate-700">Đơn vị (Tổ chức) <span className="text-red-500">*</span></label>
+                 <label className="text-sm font-semibold text-slate-700">Đơn vị (Tổ chức) <span className="text-red-500">*</span></label>
                  <select
-                   className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white"
+                   className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:outline-none bg-white text-sm"
                    value={formData.organizationId}
                    onChange={(e) => setFormData({...formData, organizationId: e.target.value})}
                  >
@@ -272,35 +270,35 @@ export const CustomersPage: React.FC = () => {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-1">
-                  <label className="text-sm font-medium text-slate-700">Họ và tên <span className="text-red-500">*</span></label>
+                  <label className="text-sm font-semibold text-slate-700">Họ và tên <span className="text-red-500">*</span></label>
                   <input 
                     type="text" 
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:outline-none text-sm"
                     value={formData.fullName}
                     onChange={(e) => setFormData({...formData, fullName: e.target.value})}
-                    placeholder="Nguyễn Văn A"
+                    placeholder="VD: Nguyễn Văn A"
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-sm font-medium text-slate-700">Số điện thoại</label>
+                  <label className="text-sm font-semibold text-slate-700">Số điện thoại</label>
                   <input 
                     type="text" 
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:outline-none text-sm"
                     value={formData.phone}
                     onChange={(e) => setFormData({...formData, phone: e.target.value})}
-                    placeholder="0987..."
+                    placeholder="VD: 098xxx..."
                   />
                 </div>
               </div>
 
               <div className="space-y-1">
-                <label className="text-sm font-medium text-slate-700">Địa chỉ</label>
+                <label className="text-sm font-semibold text-slate-700">Địa chỉ</label>
                 <textarea 
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:outline-none text-sm"
                   rows={3}
                   value={formData.address}
                   onChange={(e) => setFormData({...formData, address: e.target.value})}
-                  placeholder="Số nhà, đường, quận/huyện..."
+                  placeholder="Địa chỉ chi tiết..."
                 />
               </div>
             </div>
@@ -308,15 +306,15 @@ export const CustomersPage: React.FC = () => {
             <div className="px-6 py-4 bg-slate-50 border-t border-slate-200 flex justify-end gap-3">
               <button 
                 onClick={closeModal}
-                className="px-4 py-2 text-slate-600 hover:bg-slate-200 rounded-lg transition-colors font-medium"
+                className="px-4 py-2 text-slate-600 hover:bg-slate-200 rounded-lg transition-colors font-bold text-xs uppercase"
               >
                 Hủy bỏ
               </button>
               <button 
                 onClick={handleSave}
-                className="px-4 py-2 bg-blue-600 text-white hover:bg-blue-700 rounded-lg transition-colors font-medium shadow-sm"
+                className="px-6 py-2 bg-red-600 text-white hover:bg-red-700 rounded-lg transition-colors font-bold text-xs uppercase shadow-sm"
               >
-                Lưu thông tin
+                Lưu
               </button>
             </div>
           </div>

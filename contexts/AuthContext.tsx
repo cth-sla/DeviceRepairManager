@@ -22,12 +22,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // 1. Check active session on startup
     const initSession = async () => {
-      // FALLBACK: If Supabase is not configured, enable Offline Mode immediately
       if (!isSupabaseConfigured) {
         console.warn("Supabase not configured. Running in Offline Mode (LocalStorage).");
-        // Create a mock session key for persistence in offline mode
         const offlineSession = localStorage.getItem('device_mgr_offline_session');
         if (offlineSession) {
            setSession(JSON.parse(offlineSession));
@@ -48,7 +45,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     initSession();
 
-    // 2. Listen for auth changes (only if configured)
     if (isSupabaseConfigured) {
       const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
         setSession(session);
@@ -70,10 +66,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   return (
     <AuthContext.Provider value={{ session, loading, signOut, isOfflineMode: !isSupabaseConfigured }}>
       {loading ? (
-        <div className="flex h-screen w-screen items-center justify-center bg-slate-100">
+        <div className="flex h-screen w-screen items-center justify-center bg-red-50">
            <div className="flex flex-col items-center gap-3">
-             <Loader2 className="animate-spin text-blue-600" size={48} />
-             <p className="text-slate-500 font-medium">Đang tải dữ liệu...</p>
+             <Loader2 className="animate-spin text-red-600" size={48} />
+             <p className="text-red-900 font-bold uppercase tracking-widest text-xs">Đang tải dữ liệu...</p>
            </div>
         </div>
       ) : (
