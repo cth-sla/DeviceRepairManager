@@ -42,7 +42,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
         <div className="flex items-center justify-between p-6 border-b border-slate-700">
           <div className="flex items-center space-x-2">
             <Package className="text-blue-500" size={28} />
-            <span className="text-xl font-bold">DeviceMgr</span>
+            <span className="text-xl font-bold">DeviceRMr</span>
           </div>
           <button onClick={() => setIsSidebarOpen(false)} className="lg:hidden text-slate-400 hover:text-white">
             <X size={24} />
