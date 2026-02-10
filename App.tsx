@@ -6,21 +6,82 @@ import { RepairsPage } from './pages/Repairs';
 import { CustomersPage } from './pages/Customers';
 import { OrganizationsPage } from './pages/Organizations';
 import { WarrantyPage } from './pages/Warranty';
+import { LoginPage } from './pages/Login';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
+
+// Component to protect routes that require login
+const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
+  const { session } = useAuth();
+  
+  if (!session) {
+    return <Navigate to="/login" replace />;
+  }
+
+  return <Layout>{children}</Layout>;
+};
+
+// Component to redirect logged-in users away from login page
+const PublicRoute = ({ children }: { children: React.ReactNode }) => {
+  const { session } = useAuth();
+  
+  if (session) {
+    return <Navigate to="/" replace />;
+  }
+
+  return <>{children}</>;
+};
+
+const AppRoutes: React.FC = () => {
+  return (
+    <Routes>
+      <Route path="/login" element={
+        <PublicRoute>
+          <LoginPage />
+        </PublicRoute>
+      } />
+      
+      <Route path="/" element={
+        <ProtectedRoute>
+          <DashboardPage />
+        </ProtectedRoute>
+      } />
+      
+      <Route path="/organizations" element={
+        <ProtectedRoute>
+          <OrganizationsPage />
+        </ProtectedRoute>
+      } />
+      
+      <Route path="/customers" element={
+        <ProtectedRoute>
+          <CustomersPage />
+        </ProtectedRoute>
+      } />
+      
+      <Route path="/repairs" element={
+        <ProtectedRoute>
+          <RepairsPage />
+        </ProtectedRoute>
+      } />
+      
+      <Route path="/warranty" element={
+        <ProtectedRoute>
+          <WarrantyPage />
+        </ProtectedRoute>
+      } />
+      
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
+  );
+}
 
 const App: React.FC = () => {
   return (
-    <Router>
-      <Layout>
-        <Routes>
-          <Route path="/" element={<DashboardPage />} />
-          <Route path="/organizations" element={<OrganizationsPage />} />
-          <Route path="/customers" element={<CustomersPage />} />
-          <Route path="/repairs" element={<RepairsPage />} />
-          <Route path="/warranty" element={<WarrantyPage />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </Layout>
-    </Router>
+    <AuthProvider>
+      <Router>
+        <AppRoutes />
+      </Router>
+    </AuthProvider>
   );
 };
 

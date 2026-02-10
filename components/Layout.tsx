@@ -1,6 +1,7 @@
 import React from 'react';
-import { LayoutDashboard, Users, Wrench, Package, Menu, X, Building, ShieldCheck } from 'lucide-react';
+import { LayoutDashboard, Users, Wrench, Package, Menu, X, Building, ShieldCheck, LogOut } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -9,6 +10,7 @@ interface LayoutProps {
 export const Layout: React.FC<LayoutProps> = ({ children }) => {
   const [isSidebarOpen, setIsSidebarOpen] = React.useState(false);
   const location = useLocation();
+  const { signOut, session } = useAuth();
 
   const navItems = [
     { label: 'Tổng quan', path: '/', icon: <LayoutDashboard size={20} /> },
@@ -33,7 +35,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
       {/* Sidebar */}
       <aside 
         className={`
-          fixed lg:static inset-y-0 left-0 z-30 w-64 bg-slate-900 text-white transform transition-transform duration-200 ease-in-out
+          fixed lg:static inset-y-0 left-0 z-30 w-64 bg-slate-900 text-white transform transition-transform duration-200 ease-in-out flex flex-col
           ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
         `}
       >
@@ -47,7 +49,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
           </button>
         </div>
 
-        <nav className="p-4 space-y-2">
+        <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
           {navItems.map((item) => (
             <Link
               key={item.path}
@@ -66,12 +68,23 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
           ))}
         </nav>
 
-        <div className="absolute bottom-0 w-full p-6 border-t border-slate-800">
-          <p className="text-xs text-slate-500">
-            Phiên bản 1.1.0
-            <br />
-            © 2024 Admin System
-          </p>
+        <div className="p-4 border-t border-slate-800 bg-slate-900">
+          <div className="flex items-center gap-3 mb-3 px-2">
+            <div className="w-8 h-8 rounded-full bg-blue-900 flex items-center justify-center text-blue-200 font-bold text-xs">
+              {session?.user.email?.substring(0,2).toUpperCase()}
+            </div>
+            <div className="flex-1 overflow-hidden">
+              <p className="text-sm font-medium text-white truncate">{session?.user.email}</p>
+              <p className="text-xs text-slate-400">Administrator</p>
+            </div>
+          </div>
+          <button 
+            onClick={() => signOut()}
+            className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg transition-colors text-sm"
+          >
+            <LogOut size={16} />
+            Đăng xuất
+          </button>
         </div>
       </aside>
 
