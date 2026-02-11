@@ -200,20 +200,21 @@ export const WarrantyPage: React.FC = () => {
           <h1 className="text-2xl font-bold text-slate-900">Gửi Hãng / Bảo hành</h1>
           <p className="text-slate-500">Quản lý thiết bị gửi đi sửa chữa tại các hãng, đơn vị bên ngoài</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 w-full sm:w-auto">
           <button 
             onClick={handleExport}
-            className="flex items-center gap-2 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 px-4 py-2 rounded-lg transition-colors shadow-sm"
+            className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 px-4 py-2 rounded-lg transition-colors shadow-sm"
           >
             <Download size={18} />
-            <span>Xuất Excel</span>
+            <span className="hidden sm:inline">Xuất Excel</span>
+            <span className="sm:hidden">Excel</span>
           </button>
           <button 
             onClick={() => openModal()}
-            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors shadow-sm"
+            className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors shadow-sm"
           >
             <Plus size={18} />
-            <span>Tạo phiếu gửi</span>
+            <span>Tạo mới</span>
           </button>
         </div>
       </div>
@@ -234,7 +235,7 @@ export const WarrantyPage: React.FC = () => {
           <div className="flex items-center gap-2">
             <Filter size={18} className="text-slate-500" />
             <select 
-              className="px-3 py-2 border border-slate-300 rounded-lg bg-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="flex-1 md:flex-none px-3 py-2 border border-slate-300 rounded-lg bg-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
             >
@@ -256,13 +257,13 @@ export const WarrantyPage: React.FC = () => {
           <table className="w-full text-left text-sm">
             <thead className="bg-slate-50 text-slate-600 font-medium">
               <tr>
-                <th className="px-6 py-3">Mã phiếu / Ngày gửi</th>
-                <th className="px-6 py-3">Gửi tới Đơn vị</th>
-                <th className="px-6 py-3">Thiết bị</th>
-                <th className="px-6 py-3">Mô tả / Ghi chú</th>
-                <th className="px-6 py-3">Trạng thái</th>
-                <th className="px-6 py-3">Ngày về / Chi phí</th>
-                <th className="px-6 py-3 text-right">Thao tác</th>
+                <th className="px-6 py-3 whitespace-nowrap">Mã phiếu / Ngày gửi</th>
+                <th className="px-6 py-3 whitespace-nowrap">Gửi tới Đơn vị</th>
+                <th className="px-6 py-3 whitespace-nowrap">Thiết bị</th>
+                <th className="px-6 py-3 whitespace-nowrap">Mô tả / Ghi chú</th>
+                <th className="px-6 py-3 whitespace-nowrap">Trạng thái</th>
+                <th className="px-6 py-3 whitespace-nowrap">Ngày về / Chi phí</th>
+                <th className="px-6 py-3 text-right whitespace-nowrap">Thao tác</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200">
@@ -282,7 +283,7 @@ export const WarrantyPage: React.FC = () => {
                       {/* Cột 1: Mã + Ngày Gửi */}
                       <td className="px-6 py-4">
                         <div className="font-mono text-xs text-slate-400">#{ticket.id.slice(0, 8)}</div>
-                        <div className="font-medium text-slate-900 mt-1 flex items-center gap-1">
+                        <div className="font-medium text-slate-900 mt-1 flex items-center gap-1 whitespace-nowrap">
                            <Clock size={12} className="text-blue-500"/> {ticket.sentDate}
                         </div>
                       </td>
@@ -291,19 +292,19 @@ export const WarrantyPage: React.FC = () => {
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-2">
                            <Building2 size={16} className="text-slate-400" />
-                           <span className="font-semibold text-slate-900">{getOrgName(ticket.organizationId)}</span>
+                           <span className="font-semibold text-slate-900 whitespace-nowrap">{getOrgName(ticket.organizationId)}</span>
                         </div>
                       </td>
 
                       {/* Cột 3: Thiết bị */}
                       <td className="px-6 py-4">
                         <div className="flex flex-col">
-                           <div className="flex items-center gap-2">
+                           <div className="flex items-center gap-2 whitespace-nowrap">
                               <DeviceIcon type={ticket.deviceType} size={16} className="text-slate-500" />
                               <span className="font-medium text-slate-800">{ticket.deviceType}</span>
                            </div>
                           {ticket.serialNumber && (
-                             <span className="text-xs font-mono text-slate-600 bg-slate-50 px-1 rounded border border-slate-100 w-fit mt-1 ml-6">
+                             <span className="text-xs font-mono text-slate-600 bg-slate-50 px-1 rounded border border-slate-100 w-fit mt-1 ml-6 whitespace-nowrap">
                               SN: {ticket.serialNumber}
                             </span>
                           )}
@@ -319,7 +320,7 @@ export const WarrantyPage: React.FC = () => {
 
                       {/* Cột 5: Trạng Thái */}
                       <td className="px-6 py-4">
-                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border ${statusColors[ticket.status]}`}>
+                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border ${statusColors[ticket.status]} whitespace-nowrap`}>
                           {ticket.status}
                         </span>
                       </td>
@@ -328,12 +329,12 @@ export const WarrantyPage: React.FC = () => {
                       <td className="px-6 py-4">
                         {ticket.returnDate ? (
                           <div className="text-xs">
-                             <div className="flex items-center gap-1 font-medium text-green-700 mb-1">
+                             <div className="flex items-center gap-1 font-medium text-green-700 mb-1 whitespace-nowrap">
                                 <CheckCircle2 size={12} />
                                 {ticket.returnDate}
                              </div>
                              {ticket.cost ? (
-                                <div className="flex items-center gap-1 text-slate-600 font-mono">
+                                <div className="flex items-center gap-1 text-slate-600 font-mono whitespace-nowrap">
                                   <Coins size={12} />
                                   {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(ticket.cost)}
                                 </div>
@@ -359,7 +360,7 @@ export const WarrantyPage: React.FC = () => {
 
         {/* Pagination Footer */}
         {filteredTickets.length > 0 && (
-          <div className="px-6 py-4 border-t border-slate-200 bg-slate-50 flex items-center justify-between">
+          <div className="px-6 py-4 border-t border-slate-200 bg-slate-50 flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="text-sm text-slate-500">
               Hiển thị <span className="font-medium">{startIndex + 1}</span> đến <span className="font-medium">{Math.min(startIndex + ITEMS_PER_PAGE, filteredTickets.length)}</span> trong tổng số <span className="font-medium">{filteredTickets.length}</span> phiếu
             </div>

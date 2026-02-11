@@ -245,20 +245,21 @@ export const RepairsPage: React.FC = () => {
           <h1 className="text-2xl font-bold text-slate-900">Quản lý Sửa chữa</h1>
           <p className="text-slate-500">Theo dõi quy trình nhận và trả thiết bị</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 w-full sm:w-auto">
           <button 
             onClick={handleExport}
-            className="flex items-center gap-2 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 px-4 py-2 rounded-lg transition-colors shadow-sm"
+            className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 px-4 py-2 rounded-lg transition-colors shadow-sm"
           >
             <Download size={18} />
-            <span>Xuất Excel</span>
+            <span className="hidden sm:inline">Xuất Excel</span>
+            <span className="sm:hidden">Excel</span>
           </button>
           <button 
             onClick={() => openModal()}
-            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors shadow-sm"
+            className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors shadow-sm"
           >
             <Plus size={18} />
-            <span>Tạo phiếu mới</span>
+            <span>Tạo mới</span>
           </button>
         </div>
       </div>
@@ -279,7 +280,7 @@ export const RepairsPage: React.FC = () => {
           <div className="flex items-center gap-2">
             <Filter size={18} className="text-slate-500" />
             <select 
-              className="px-3 py-2 border border-slate-300 rounded-lg bg-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="flex-1 md:flex-none px-3 py-2 border border-slate-300 rounded-lg bg-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
             >
@@ -301,12 +302,12 @@ export const RepairsPage: React.FC = () => {
           <table className="w-full text-left text-sm">
             <thead className="bg-slate-50 text-slate-600 font-medium">
               <tr>
-                <th className="px-6 py-3">Mã phiếu / Ngày nhận</th>
-                <th className="px-6 py-3">Khách hàng</th>
-                <th className="px-6 py-3">Thiết bị</th>
-                <th className="px-6 py-3">Trạng thái</th>
-                <th className="px-6 py-3">Ngày trả / Vận chuyển</th>
-                <th className="px-6 py-3 text-right">Thao tác</th>
+                <th className="px-6 py-3 whitespace-nowrap">Mã phiếu / Ngày nhận</th>
+                <th className="px-6 py-3 whitespace-nowrap">Khách hàng</th>
+                <th className="px-6 py-3 whitespace-nowrap">Thiết bị</th>
+                <th className="px-6 py-3 whitespace-nowrap">Trạng thái</th>
+                <th className="px-6 py-3 whitespace-nowrap">Ngày trả / Vận chuyển</th>
+                <th className="px-6 py-3 text-right whitespace-nowrap">Thao tác</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200">
@@ -327,26 +328,26 @@ export const RepairsPage: React.FC = () => {
                       {/* Cột 1: Mã + Ngày Nhận */}
                       <td className="px-6 py-4">
                         <div className="font-mono text-xs text-slate-400">#{ticket.id.slice(0, 8)}</div>
-                        <div className="font-medium text-slate-900 mt-1 flex items-center gap-1">
+                        <div className="font-medium text-slate-900 mt-1 flex items-center gap-1 whitespace-nowrap">
                            <Clock size={12} className="text-blue-500"/> {ticket.receiveDate}
                         </div>
                       </td>
                       
                       {/* Cột 2: Khách Hàng */}
                       <td className="px-6 py-4">
-                        <div className="font-semibold text-slate-900">{customer?.fullName || 'Unknown'}</div>
-                        <div className="text-slate-500 text-xs mt-1 font-medium text-blue-600">{orgName}</div>
+                        <div className="font-semibold text-slate-900 whitespace-nowrap">{customer?.fullName || 'Unknown'}</div>
+                        <div className="text-slate-500 text-xs mt-1 font-medium text-blue-600 whitespace-nowrap">{orgName}</div>
                       </td>
 
                       {/* Cột 3: Thiết bị */}
                       <td className="px-6 py-4">
                         <div className="flex flex-col">
-                           <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded bg-slate-100 text-slate-700 border border-slate-200 text-xs font-medium w-fit mb-1">
+                           <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded bg-slate-100 text-slate-700 border border-slate-200 text-xs font-medium w-fit mb-1 whitespace-nowrap">
                             <DeviceIcon type={ticket.deviceType} size={14} className="text-slate-500" />
                             {ticket.deviceType}
                           </span>
                           {ticket.serialNumber && (
-                             <span className="text-xs font-mono text-slate-600 bg-slate-50 px-1 rounded border border-slate-100 w-fit">
+                             <span className="text-xs font-mono text-slate-600 bg-slate-50 px-1 rounded border border-slate-100 w-fit whitespace-nowrap">
                               SN: {ticket.serialNumber}
                             </span>
                           )}
@@ -358,7 +359,7 @@ export const RepairsPage: React.FC = () => {
 
                       {/* Cột 4: Trạng Thái */}
                       <td className="px-6 py-4">
-                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border ${statusColors[ticket.status]}`}>
+                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border ${statusColors[ticket.status]} whitespace-nowrap`}>
                           {ticket.status}
                         </span>
                       </td>
@@ -367,11 +368,11 @@ export const RepairsPage: React.FC = () => {
                       <td className="px-6 py-4">
                         {ticket.status === RepairStatus.RETURNED ? (
                           <div className="text-xs">
-                             <div className="flex items-center gap-1 font-medium text-green-700 mb-1">
+                             <div className="flex items-center gap-1 font-medium text-green-700 mb-1 whitespace-nowrap">
                                 <CheckCircle2 size={12} />
                                 {ticket.returnDate}
                              </div>
-                            <div className="flex items-center gap-1 text-slate-600">
+                            <div className="flex items-center gap-1 text-slate-600 whitespace-nowrap">
                               <Truck size={12} />
                               {ticket.shippingMethod}
                             </div>
@@ -412,7 +413,7 @@ export const RepairsPage: React.FC = () => {
 
         {/* Pagination Footer */}
         {filteredTickets.length > 0 && (
-          <div className="px-6 py-4 border-t border-slate-200 bg-slate-50 flex items-center justify-between">
+          <div className="px-6 py-4 border-t border-slate-200 bg-slate-50 flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="text-sm text-slate-500">
               Hiển thị <span className="font-medium">{startIndex + 1}</span> đến <span className="font-medium">{Math.min(startIndex + ITEMS_PER_PAGE, filteredTickets.length)}</span> trong tổng số <span className="font-medium">{filteredTickets.length}</span> phiếu
             </div>
@@ -543,10 +544,10 @@ export const RepairsPage: React.FC = () => {
                 
                 <div className="space-y-1">
                   <label className="text-sm font-medium text-slate-700">Trạng thái hiện tại</label>
-                  <div className="flex gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                      {Object.values(RepairStatus).map((status) => (
                        <label key={status} className={`
-                          flex-1 flex items-center justify-center gap-2 p-3 rounded-lg border cursor-pointer transition-all
+                          flex items-center justify-center gap-2 p-3 rounded-lg border cursor-pointer transition-all
                           ${formData.status === status 
                             ? 'bg-blue-50 border-blue-500 text-blue-700 ring-1 ring-blue-500' 
                             : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}
