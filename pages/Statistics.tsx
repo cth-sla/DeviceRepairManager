@@ -177,9 +177,8 @@ export const StatisticsPage: React.FC = () => {
                 innerRadius={60}
                 outerRadius={100}
                 paddingAngle={2}
-                dataKey="value" // Actually using 'count', remapping below or relying on 'count' key if dataKey is flexible. Recharts expects 'value' usually.
+                dataKey="count"
                 nameKey="name"
-                data={analysis.map(a => ({...a, value: a.count}))} // Map count to value for Pie
               >
                 {analysis.map((entry, index) => (
                   <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
@@ -197,8 +196,8 @@ export const StatisticsPage: React.FC = () => {
         <div className="p-6 border-b border-slate-200 bg-slate-50 flex items-center justify-between">
           <h3 className="font-bold text-slate-800">Đánh giá chi tiết & Khuyến nghị</h3>
           <div className="flex gap-4 text-xs font-medium">
-             <div className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-red-500"></span> Nguy hiểm (>30%)</div>
-             <div className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-amber-500"></span> Cảnh báo (>15%)</div>
+             <div className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-red-500"></span> Nguy hiểm (&gt;30%)</div>
+             <div className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-amber-500"></span> Cảnh báo (&gt;15%)</div>
              <div className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-green-500"></span> Ổn định</div>
           </div>
         </div>
