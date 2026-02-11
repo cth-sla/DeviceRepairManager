@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { supabase, isSupabaseConfigured } from '../services/client';
 import { useNavigate } from 'react-router-dom';
-import { Package, Mail, Lock, Loader2, AlertCircle, WifiOff } from 'lucide-react';
+import { Cog, Mail, Lock, Loader2, AlertCircle, WifiOff } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
 export const LoginPage: React.FC = () => {
@@ -80,9 +80,9 @@ export const LoginPage: React.FC = () => {
       <div className="bg-slate-900/60 backdrop-blur-2xl rounded-3xl shadow-2xl w-full max-w-md overflow-hidden border border-white/10 relative z-10">
         <div className="p-8 text-center bg-white/5 border-b border-white/5">
           <div className="inline-flex p-4 rounded-2xl bg-blue-600/20 mb-4 border border-blue-500/30">
-            <Package className="text-blue-400" size={48} />
+            <Cog className="text-blue-400 animate-[spin_10s_linear_infinite]" size={48} />
           </div>
-          <h1 className="text-3xl font-bold text-white tracking-tight">Device Repair Manager</h1>
+          <h1 className="text-3xl font-bold text-white tracking-tight">DeviceMgr</h1>
           <p className="text-slate-400 mt-2 text-sm uppercase tracking-[0.2em] font-medium opacity-80">Hệ thống Quản lý Thiết bị</p>
         </div>
 
@@ -154,7 +154,7 @@ export const LoginPage: React.FC = () => {
         
         <div className="px-8 py-5 bg-black/20 border-t border-white/5 text-center">
           <p className="text-[10px] text-slate-500 uppercase tracking-[0.2em] font-bold">
-            © 2026 • Trần Trà
+            © 2026 DeviceMgr Hub • Version 1.0
           </p>
         </div>
       </div>
