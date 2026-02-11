@@ -4,8 +4,9 @@ import { RepairStatus, RepairTicket, Customer, Organization } from '../types';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, LabelList, PieChart, Pie, Legend
 } from 'recharts';
-import { CheckCircle2, Clock, AlertCircle, Package, History, Loader2, TrendingUp, AlertTriangle } from 'lucide-react';
+import { CheckCircle2, Clock, AlertCircle, Package, History, Loader2, TrendingUp, AlertTriangle, ArrowRight } from 'lucide-react';
 import { DeviceIcon } from '../components/DeviceIcon';
+import { Link } from 'react-router-dom';
 
 interface DeviceStat {
   name: string;
@@ -123,6 +124,12 @@ export const DashboardPage: React.FC = () => {
 
   // Colors for Device Chart (Distinct colors)
   const DEVICE_COLORS = ['#3b82f6', '#ef4444', '#f59e0b', '#10b981', '#8b5cf6', '#64748b'];
+
+  const statusColors = {
+    [RepairStatus.RECEIVED]: 'bg-blue-100 text-blue-700 border-blue-200',
+    [RepairStatus.PROCESSING]: 'bg-amber-100 text-amber-700 border-amber-200',
+    [RepairStatus.RETURNED]: 'bg-green-100 text-green-700 border-green-200',
+  };
 
   // Recent Tickets (Top 5 newest)
   const recentTickets = [...tickets]
@@ -274,6 +281,65 @@ export const DashboardPage: React.FC = () => {
               </div>
             </div>
           )}
+        </div>
+      </div>
+
+      {/* Recent Activity Section */}
+      <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+        <div className="p-6 border-b border-slate-200 bg-slate-50 flex items-center justify-between">
+          <h3 className="font-bold text-slate-800 flex items-center gap-2">
+            <History size={20} className="text-slate-500" />
+            Lịch sử tiếp nhận gần đây
+          </h3>
+          <Link to="/repairs" className="text-sm font-medium text-blue-600 hover:text-blue-700 flex items-center gap-1">
+            Xem tất cả <ArrowRight size={16} />
+          </Link>
+        </div>
+        
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-sm">
+            <thead className="bg-white text-slate-500 font-medium border-b border-slate-100">
+              <tr>
+                <th className="px-6 py-4">Mã Phiếu</th>
+                <th className="px-6 py-4">Khách hàng / Đơn vị</th>
+                <th className="px-6 py-4">Thiết bị</th>
+                <th className="px-6 py-4">Ngày nhận</th>
+                <th className="px-6 py-4">Trạng thái</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {recentTickets.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="px-6 py-8 text-center text-slate-500">Chưa có dữ liệu nào.</td>
+                </tr>
+              ) : (
+                recentTickets.map(ticket => (
+                  <tr key={ticket.id} className="hover:bg-slate-50 transition-colors">
+                    <td className="px-6 py-4 font-mono text-slate-500">#{ticket.id.slice(0, 8)}</td>
+                    <td className="px-6 py-4">
+                      <div>
+                        <div className="font-medium text-slate-900">{getCustomerName(ticket.customerId)}</div>
+                        <div className="text-xs text-slate-500">{getOrgName(ticket.customerId)}</div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                       <div className="flex items-center gap-2">
+                          <DeviceIcon type={ticket.deviceType} size={16} className="text-slate-500" />
+                          <span className="text-slate-700">{ticket.deviceType}</span>
+                          {ticket.serialNumber && <span className="text-xs text-slate-400">({ticket.serialNumber})</span>}
+                       </div>
+                    </td>
+                    <td className="px-6 py-4 text-slate-600">{ticket.receiveDate}</td>
+                    <td className="px-6 py-4">
+                      <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border ${statusColors[ticket.status]}`}>
+                        {ticket.status}
+                      </span>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
     </div>
