@@ -50,7 +50,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
         <div className="flex items-center justify-between p-6 border-b border-slate-700/50">
           <div className="flex items-center space-x-3">
             <Cog className="text-blue-500 animate-[spin_10s_linear_infinite]" size={28} />
-            <span className="text-xl font-bold tracking-tight">DeviceMgr</span>
+            <span className="text-xl font-bold tracking-tight">Device Repair Manager</span>
           </div>
           <button onClick={() => setIsSidebarOpen(false)} className="lg:hidden text-slate-400 hover:text-white">
             <X size={24} />

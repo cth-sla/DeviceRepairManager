@@ -82,7 +82,7 @@ export const LoginPage: React.FC = () => {
           <div className="inline-flex p-4 rounded-2xl bg-blue-600/20 mb-4 border border-blue-500/30">
             <Cog className="text-blue-400 animate-[spin_10s_linear_infinite]" size={48} />
           </div>
-          <h1 className="text-3xl font-bold text-white tracking-tight">DeviceMgr</h1>
+          <h1 className="text-3xl font-bold text-white tracking-tight">Device Repair Manager</h1>
           <p className="text-slate-400 mt-2 text-sm uppercase tracking-[0.2em] font-medium opacity-80">Hệ thống Quản lý Thiết bị</p>
         </div>
 
@@ -154,7 +154,7 @@ export const LoginPage: React.FC = () => {
         
         <div className="px-8 py-5 bg-black/20 border-t border-white/5 text-center">
           <p className="text-[10px] text-slate-500 uppercase tracking-[0.2em] font-bold">
-            © 2026 DeviceMgr Hub • Version 1.0
+            © 2026 • Trần Trà
           </p>
         </div>
       </div>
