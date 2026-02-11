@@ -1,5 +1,5 @@
 import React from 'react';
-import { LayoutDashboard, Users, Wrench, Package, Menu, X, Building, ShieldCheck, LogOut, Wifi, WifiOff, Cog } from 'lucide-react';
+import { LayoutDashboard, Users, Wrench, Package, Menu, X, Building, ShieldCheck, LogOut, Wifi, WifiOff, Cog, BarChart3 } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -14,6 +14,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
 
   const navItems = [
     { label: 'Tổng quan', path: '/', icon: <LayoutDashboard size={20} /> },
+    { label: 'Thống kê & Phân tích', path: '/statistics', icon: <BarChart3 size={20} /> },
     { label: 'Quản lý Sửa chữa', path: '/repairs', icon: <Wrench size={20} /> },
     { label: 'Gửi Hãng / Bảo hành', path: '/warranty', icon: <ShieldCheck size={20} /> },
     { label: 'Quản lý Đơn vị', path: '/organizations', icon: <Building size={20} /> },

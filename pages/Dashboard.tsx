@@ -2,10 +2,47 @@ import React, { useEffect, useState } from 'react';
 import { StorageService } from '../services/storage';
 import { RepairStatus, RepairTicket, Customer, Organization } from '../types';
 import { 
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, LabelList
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, LabelList, PieChart, Pie, Legend
 } from 'recharts';
-import { CheckCircle2, Clock, AlertCircle, Package, History, Loader2 } from 'lucide-react';
+import { CheckCircle2, Clock, AlertCircle, Package, History, Loader2, TrendingUp, AlertTriangle } from 'lucide-react';
 import { DeviceIcon } from '../components/DeviceIcon';
+
+interface DeviceStat {
+  name: string;
+  value: number;
+  percent: number;
+}
+
+interface StatCardProps {
+  title: string;
+  value: number;
+  icon: React.ReactNode;
+  bg?: string;
+  borderColor?: string;
+}
+
+const StatCard: React.FC<StatCardProps> = ({ 
+  title, 
+  value, 
+  icon, 
+  bg = 'bg-white', 
+  borderColor = 'border-slate-200' 
+}) => {
+  return (
+    <div className={`p-6 rounded-xl shadow-sm border ${borderColor} ${bg} transition-all hover:shadow-md`}>
+      <div className="flex items-center justify-between mb-4">
+        <div className="p-3 bg-white rounded-lg shadow-sm border border-slate-100/50">
+          {icon}
+        </div>
+        {/* You could add percentage change here if available */}
+      </div>
+      <div>
+        <p className="text-3xl font-bold text-slate-800 tracking-tight">{value}</p>
+        <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mt-1">{title}</h3>
+      </div>
+    </div>
+  );
+};
 
 export const DashboardPage: React.FC = () => {
   const [stats, setStats] = useState({
@@ -20,7 +57,7 @@ export const DashboardPage: React.FC = () => {
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   
-  const [deviceStats, setDeviceStats] = useState<{name: string, value: number}[]>([]);
+  const [deviceStats, setDeviceStats] = useState<DeviceStat[]>([]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -35,7 +72,7 @@ export const DashboardPage: React.FC = () => {
       setCustomers(loadedCustomers);
       setOrganizations(loadedOrgs);
 
-      // Calc Status Stats
+      // 1. Calc Status Stats
       setStats({
         total: loadedTickets.length,
         received: loadedTickets.filter(t => t.status === RepairStatus.RECEIVED).length,
@@ -43,12 +80,21 @@ export const DashboardPage: React.FC = () => {
         returned: loadedTickets.filter(t => t.status === RepairStatus.RETURNED).length,
       });
 
-      // Calc Device Type Stats
+      // 2. Calc Device Type Stats & Ratios
       const typeCounts: Record<string, number> = {};
       loadedTickets.forEach(t => {
         typeCounts[t.deviceType] = (typeCounts[t.deviceType] || 0) + 1;
       });
-      const deviceData = Object.entries(typeCounts).map(([name, value]) => ({ name, value }));
+
+      const totalTickets = loadedTickets.length;
+      const deviceData = Object.entries(typeCounts)
+        .map(([name, value]) => ({ 
+          name, 
+          value,
+          percent: totalTickets > 0 ? parseFloat(((value / totalTickets) * 100).toFixed(1)) : 0
+        }))
+        .sort((a, b) => b.value - a.value); // Sort descending to show most broken first
+
       setDeviceStats(deviceData);
       setIsLoading(false);
     };
@@ -75,8 +121,8 @@ export const DashboardPage: React.FC = () => {
     { name: 'Đã trả', value: stats.returned, color: '#10b981' }, // Emerald
   ];
 
-  // Colors for Midnight Blue theme
-  const COLORS = ['#1e293b', '#3b82f6', '#2563eb', '#60a5fa', '#94a3b8', '#0f172a'];
+  // Colors for Device Chart (Distinct colors)
+  const DEVICE_COLORS = ['#3b82f6', '#ef4444', '#f59e0b', '#10b981', '#8b5cf6', '#64748b'];
 
   // Recent Tickets (Top 5 newest)
   const recentTickets = [...tickets]
@@ -101,7 +147,7 @@ export const DashboardPage: React.FC = () => {
       {/* KPI Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard 
-          title="Tổng phiếu" 
+          title="Tổng phiếu tiếp nhận" 
           value={stats.total} 
           icon={<Package className="text-slate-600" />} 
           bg="bg-slate-100" 
@@ -132,9 +178,9 @@ export const DashboardPage: React.FC = () => {
       {/* Charts Section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         
-        {/* Status Bar Chart */}
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 min-h-[350px]">
-          <h3 className="text-sm font-bold uppercase tracking-widest text-slate-400 mb-6">Thống kê Trạng thái</h3>
+        {/* Left: Status Bar Chart */}
+        <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 min-h-[400px]">
+          <h3 className="text-sm font-bold uppercase tracking-widest text-slate-400 mb-6">Tiến độ Xử lý</h3>
           {stats.total === 0 ? (
             <div className="h-64 flex items-center justify-center text-slate-400">Chưa có dữ liệu</div>
           ) : (
@@ -147,7 +193,10 @@ export const DashboardPage: React.FC = () => {
                 <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f1f5f9" />
                 <XAxis type="number" allowDecimals={false} hide />
                 <YAxis dataKey="name" type="category" width={80} tick={{fontSize: 12, fontWeight: 600, fill: '#475569'}} axisLine={false} tickLine={false} />
-                <Tooltip cursor={{fill: '#f8fafc'}} />
+                <Tooltip 
+                  cursor={{fill: '#f8fafc'}}
+                  contentStyle={{borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'}} 
+                />
                 <Bar dataKey="value" name="Số lượng" radius={[0, 4, 4, 0]} barSize={32}>
                   {statusData.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={entry.color} />
@@ -159,119 +208,74 @@ export const DashboardPage: React.FC = () => {
           )}
         </div>
         
-        {/* Device Type Bar Chart (Vertical Columns) */}
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 min-h-[350px]">
-          <h3 className="text-sm font-bold uppercase tracking-widest text-slate-400 mb-6">Phân loại Thiết bị</h3>
+        {/* Right: Device Failure Ratio (Pie Chart + List) */}
+        <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 min-h-[400px] flex flex-col">
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-sm font-bold uppercase tracking-widest text-slate-400">Tỉ lệ Hỏng theo Thiết bị</h3>
+            <div className="flex items-center gap-1 text-xs font-medium text-amber-600 bg-amber-50 px-2 py-1 rounded">
+               <TrendingUp size={14} />
+               <span>Top: {deviceStats[0]?.name || 'N/A'}</span>
+            </div>
+          </div>
+
           {stats.total === 0 ? (
-            <div className="h-64 flex items-center justify-center text-slate-400">Chưa có dữ liệu</div>
+            <div className="flex-1 flex items-center justify-center text-slate-400">Chưa có dữ liệu</div>
           ) : (
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart
-                data={deviceStats}
-                margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-              >
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                <XAxis 
-                  dataKey="name" 
-                  axisLine={false} 
-                  tickLine={false} 
-                  tick={{fontSize: 11, fontWeight: 600, fill: '#475569'}}
-                />
-                <YAxis hide />
-                <Tooltip cursor={{fill: '#f8fafc'}} />
-                <Bar dataKey="value" name="Số lượng" radius={[6, 6, 0, 0]} barSize={40}>
-                  {deviceStats.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                  ))}
-                  <LabelList 
-                    dataKey="value" 
-                    position="top" 
-                    style={{ fill: '#1e293b', fontSize: 12, fontWeight: '800' }} 
-                  />
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
+            <div className="flex flex-col sm:flex-row h-full">
+              {/* Pie Chart */}
+              <div className="flex-1 h-[250px] sm:h-auto min-h-[250px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={deviceStats}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={60}
+                      outerRadius={80}
+                      paddingAngle={5}
+                      dataKey="value"
+                    >
+                      {deviceStats.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={DEVICE_COLORS[index % DEVICE_COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip 
+                      formatter={(value: number, name: string, props: any) => [
+                        `${value} phiếu (${props.payload.percent}%)`, 
+                        name
+                      ]}
+                      contentStyle={{borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'}}
+                    />
+                    <Legend verticalAlign="bottom" height={36} iconType="circle" />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+
+              {/* Breakdown List */}
+              <div className="flex-1 sm:pl-4 sm:border-l border-slate-100 flex flex-col justify-center space-y-3 overflow-y-auto max-h-[300px]">
+                {deviceStats.map((item, index) => (
+                  <div key={item.name} className="flex items-center justify-between group">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full" style={{ backgroundColor: DEVICE_COLORS[index % DEVICE_COLORS.length] }}></div>
+                      <span className="text-sm text-slate-600 font-medium">{item.name}</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className="text-sm font-bold text-slate-800">{item.value}</span>
+                      <span className="text-xs font-medium text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded w-[45px] text-right">
+                        {item.percent}%
+                      </span>
+                    </div>
+                  </div>
+                ))}
+                
+                <div className="mt-4 pt-3 border-t border-slate-100 text-xs text-slate-400 italic text-center">
+                  * Dữ liệu dựa trên tổng số phiếu
+                </div>
+              </div>
+            </div>
           )}
         </div>
       </div>
-
-      {/* Recent History Table */}
-      <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-        <div className="p-6 border-b border-slate-200 flex items-center justify-between bg-slate-50/50">
-          <div className="flex items-center gap-2">
-            <History className="text-slate-500" size={20} />
-            <h3 className="text-lg font-bold text-slate-800 tracking-tight">Phiếu sửa chữa gần đây</h3>
-          </div>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
-            <thead className="bg-slate-50 text-slate-600 font-bold text-[10px] uppercase tracking-wider">
-              <tr>
-                <th className="px-6 py-4">Ngày nhận</th>
-                <th className="px-6 py-4">Thiết bị</th>
-                <th className="px-6 py-4">Khách hàng</th>
-                <th className="px-6 py-4">Trạng thái</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {recentTickets.length === 0 ? (
-                <tr>
-                  <td colSpan={4} className="px-6 py-12 text-center text-slate-400 italic">
-                    Chưa có dữ liệu vận hành.
-                  </td>
-                </tr>
-              ) : (
-                recentTickets.map((t) => (
-                  <tr key={t.id} className="hover:bg-slate-50/80 transition-colors">
-                    <td className="px-6 py-4 font-semibold text-slate-600">{t.receiveDate}</td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-2 mb-0.5">
-                        <DeviceIcon type={t.deviceType} size={16} className="text-blue-500" />
-                        <span className="font-bold text-slate-900">{t.deviceType}</span>
-                      </div>
-                      {t.serialNumber && <span className="text-[10px] font-mono text-slate-400 pl-6 block">SN: {t.serialNumber}</span>}
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className="block font-bold text-slate-800">{getCustomerName(t.customerId)}</span>
-                      <span className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">{getOrgName(t.customerId)}</span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <StatusBadge status={t.status} />
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
     </div>
-  );
-};
-
-const StatCard = ({ title, value, icon, bg, borderColor = "border-transparent" }: any) => (
-  <div className={`p-6 rounded-xl ${bg} border ${borderColor} transition-all duration-300 hover:shadow-md hover:-translate-y-1`}>
-    <div className="flex items-center justify-between">
-      <div>
-        <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1">{title}</p>
-        <p className="text-3xl font-bold text-slate-900 tracking-tight">{value}</p>
-      </div>
-      <div className="p-3 bg-white/60 rounded-lg backdrop-blur-sm shadow-sm">
-        {icon}
-      </div>
-    </div>
-  </div>
-);
-
-const StatusBadge = ({ status }: { status: RepairStatus }) => {
-  const colors = {
-    [RepairStatus.RECEIVED]: 'bg-blue-100 text-blue-700 border-blue-200',
-    [RepairStatus.PROCESSING]: 'bg-amber-100 text-amber-700 border-amber-200',
-    [RepairStatus.RETURNED]: 'bg-emerald-100 text-emerald-700 border-emerald-200',
-  };
-  return (
-    <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase border ${colors[status]}`}>
-      {status}
-    </span>
   );
 };

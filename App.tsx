@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Layout } from './components/Layout';
@@ -7,6 +6,7 @@ import { RepairsPage } from './pages/Repairs';
 import { CustomersPage } from './pages/Customers';
 import { OrganizationsPage } from './pages/Organizations';
 import { WarrantyPage } from './pages/Warranty';
+import { StatisticsPage } from './pages/Statistics';
 import { LoginPage } from './pages/Login';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 
@@ -46,6 +46,12 @@ const AppRoutes: React.FC = () => {
       <Route path="/" element={
         <ProtectedRoute>
           <DashboardPage />
+        </ProtectedRoute>
+      } />
+      
+      <Route path="/statistics" element={
+        <ProtectedRoute>
+          <StatisticsPage />
         </ProtectedRoute>
       } />
       
