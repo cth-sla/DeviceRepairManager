@@ -115,9 +115,9 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
           <span className="ml-4 font-semibold text-slate-700">Menu</span>
         </header>
 
-        <main className="flex-1 overflow-auto p-3 sm:p-4 lg:p-8">
-          <div className="max-w-7xl mx-auto">
-            <div className="bg-white/95 backdrop-blur-sm rounded-3xl shadow-2xl p-4 sm:p-6 lg:p-8 border border-white/20">
+        <main className="flex-1 overflow-auto p-3 sm:p-4 lg:p-6">
+          <div className="w-full h-full">
+            <div className="bg-white/95 backdrop-blur-sm rounded-3xl shadow-2xl p-4 sm:p-6 lg:p-8 border border-white/20 min-h-full">
               {children}
             </div>
           </div>
