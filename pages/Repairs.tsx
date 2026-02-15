@@ -101,36 +101,56 @@ export const RepairsPage: React.FC = () => {
   const handleSave = async () => {
     let finalCustomerId = formData.customerId;
 
+    // XỬ LÝ KHÁCH HÀNG MỚI (VỚI KIỂM TRA TRÙNG SỐ ĐIỆN THOẠI)
     if (isAddingNewCustomer) {
       if (!newCustomerData.fullName || !newCustomerData.organizationId) {
         alert('Vui lòng nhập tên khách hàng và chọn đơn vị cho khách hàng mới');
         return;
       }
-      
-      const newCustId = crypto.randomUUID();
-      const customerToSave: Customer = {
-        id: newCustId,
-        fullName: newCustomerData.fullName!,
-        organizationId: newCustomerData.organizationId!,
-        phone: newCustomerData.phone || '',
-        // Fixed: Use newCustomerData.address instead of undefined variable 'e'
-        address: newCustomerData.address || '',
-        createdAt: Date.now()
-      };
-      
-      try {
-        await StorageService.addCustomer(customerToSave);
-        finalCustomerId = newCustId;
-        setCustomers(prev => [customerToSave, ...prev]);
-      } catch (e) {
-        console.error(e);
-        alert('Lỗi khi lưu thông tin khách hàng mới');
-        return;
+
+      const phoneTrimmed = newCustomerData.phone?.trim();
+      if (phoneTrimmed) {
+        const existing = customers.find(c => c.phone.trim() === phoneTrimmed);
+        if (existing) {
+          const useExisting = window.confirm(
+            `PHÁT HIỆN TRÙNG LẶP: Số điện thoại ${phoneTrimmed} đã tồn tại với tên "${existing.fullName}". \n\nBạn có muốn sử dụng khách hàng này thay vì tạo mới không?`
+          );
+          if (useExisting) {
+            finalCustomerId = existing.id;
+            setIsAddingNewCustomer(false);
+          } else {
+            return; // Dừng lại để người dùng đổi số điện thoại
+          }
+        }
+      }
+
+      // Nếu vẫn là khách hàng mới (không trùng hoặc người dùng chấp nhận tiếp tục)
+      if (isAddingNewCustomer && !finalCustomerId) {
+        const newCustId = crypto.randomUUID();
+        const customerToSave: Customer = {
+          id: newCustId,
+          fullName: newCustomerData.fullName!.trim(),
+          organizationId: newCustomerData.organizationId!,
+          phone: phoneTrimmed || '',
+          address: newCustomerData.address?.trim() || '',
+          createdAt: Date.now()
+        };
+        
+        try {
+          await StorageService.addCustomer(customerToSave);
+          finalCustomerId = newCustId;
+          // Cập nhật local state để hiển thị ngay
+          setCustomers(prev => [customerToSave, ...prev]);
+        } catch (e) {
+          console.error(e);
+          alert('Lỗi khi lưu thông tin khách hàng mới');
+          return;
+        }
       }
     }
 
     if (!finalCustomerId || !formData.deviceType || !formData.receiveDate) {
-      alert('Vui lòng điền đầy đủ thông tin bắt buộc');
+      alert('Vui lòng chọn khách hàng và điền đầy đủ thông tin thiết bị');
       return;
     }
 
@@ -145,14 +165,14 @@ export const RepairsPage: React.FC = () => {
       id: editingId || crypto.randomUUID(),
       customerId: finalCustomerId,
       deviceType: formData.deviceType as DeviceType,
-      serialNumber: formData.serialNumber,
+      serialNumber: formData.serialNumber?.trim() || '',
       deviceCondition: formData.deviceCondition || 'Không rõ',
       receiveDate: formData.receiveDate,
       status: formData.status || RepairStatus.RECEIVED,
       returnDate: formData.returnDate,
       returnNote: formData.returnNote,
       shippingMethod: formData.shippingMethod as ShippingMethod,
-      trackingNumber: formData.trackingNumber,
+      trackingNumber: formData.trackingNumber?.trim(),
       createdAt: editingId ? (tickets.find(t => t.id === editingId)?.createdAt || Date.now()) : Date.now(),
       updatedAt: Date.now()
     };
@@ -223,7 +243,12 @@ export const RepairsPage: React.FC = () => {
   const filteredTickets = tickets.filter(t => {
     const customer = getCustomer(t.customerId);
     const orgName = getOrgName(t.customerId);
-    const matchesSearch = customer?.fullName.toLowerCase().includes(searchTerm.toLowerCase()) || orgName.toLowerCase().includes(searchTerm.toLowerCase()) || t.deviceType.toLowerCase().includes(searchTerm.toLowerCase()) || (t.serialNumber && t.serialNumber.toLowerCase().includes(searchTerm.toLowerCase())) || t.id.toLowerCase().includes(searchTerm.toLowerCase()) || (t.trackingNumber && t.trackingNumber.toLowerCase().includes(searchTerm.toLowerCase()));
+    const matchesSearch = customer?.fullName.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                          orgName.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                          t.deviceType.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                          (t.serialNumber && t.serialNumber.toLowerCase().includes(searchTerm.toLowerCase())) || 
+                          t.id.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                          (t.trackingNumber && t.trackingNumber.toLowerCase().includes(searchTerm.toLowerCase()));
     const matchesStatus = statusFilter === 'ALL' || t.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
@@ -265,7 +290,7 @@ export const RepairsPage: React.FC = () => {
         <div className="p-4 border-b border-slate-200 bg-slate-50 flex flex-col md:flex-row gap-4 justify-between">
           <div className="relative max-w-md w-full">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-            <input type="text" placeholder="Tìm theo Serial, khách hàng, đơn vị..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full pl-10 pr-4 py-2 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            <input type="text" placeholder="Tìm theo Serial, khách hàng, đơn vị..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full pl-10 pr-4 py-2 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white" />
           </div>
           <div className="flex items-center gap-2">
             <Filter size={18} className="text-slate-500" />

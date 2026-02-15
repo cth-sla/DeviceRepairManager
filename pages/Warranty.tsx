@@ -78,16 +78,16 @@ export const WarrantyPage: React.FC = () => {
       id: editingId || crypto.randomUUID(),
       organizationId: formData.organizationId,
       deviceType: formData.deviceType as DeviceType,
-      serialNumber: formData.serialNumber,
-      description: formData.description || '',
+      serialNumber: formData.serialNumber?.trim() || '',
+      description: formData.description?.trim() || '',
       sentDate: formData.sentDate,
-      status: formData.status || WarrantyStatus.SENT,
+      status: (formData.status as WarrantyStatus) || WarrantyStatus.SENT,
       
       returnDate: formData.returnDate,
-      cost: formData.cost,
-      note: formData.note,
-      shippingMethod: formData.shippingMethod as ShippingMethod,
-      trackingNumber: formData.trackingNumber,
+      cost: formData.cost || 0,
+      note: formData.note?.trim(),
+      shippingMethod: (formData.shippingMethod as ShippingMethod) || ShippingMethod.VIETTEL_POST,
+      trackingNumber: formData.trackingNumber?.trim(),
       
       createdAt: editingId ? (tickets.find(t => t.id === editingId)?.createdAt || Date.now()) : Date.now(),
       updatedAt: Date.now()
@@ -153,7 +153,11 @@ export const WarrantyPage: React.FC = () => {
 
   const filteredTickets = tickets.filter(t => {
     const orgName = getOrgName(t.organizationId);
-    const matchesSearch = orgName.toLowerCase().includes(searchTerm.toLowerCase()) || t.deviceType.toLowerCase().includes(searchTerm.toLowerCase()) || (t.serialNumber && t.serialNumber.toLowerCase().includes(searchTerm.toLowerCase())) || t.id.toLowerCase().includes(searchTerm.toLowerCase()) || (t.trackingNumber && t.trackingNumber.toLowerCase().includes(searchTerm.toLowerCase()));
+    const matchesSearch = orgName.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                          t.deviceType.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                          (t.serialNumber && t.serialNumber.toLowerCase().includes(searchTerm.toLowerCase())) || 
+                          t.id.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                          (t.trackingNumber && t.trackingNumber.toLowerCase().includes(searchTerm.toLowerCase()));
     const matchesStatus = statusFilter === 'ALL' || t.status === statusFilter;
     return matchesSearch && matchesStatus;
   }).sort((a, b) => b.sentDate.localeCompare(a.sentDate));
@@ -189,7 +193,7 @@ export const WarrantyPage: React.FC = () => {
         <div className="p-4 border-b border-slate-200 bg-slate-50 flex flex-col md:flex-row gap-4 justify-between">
           <div className="relative max-w-md w-full">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-            <input type="text" placeholder="Tìm theo Serial, đơn vị, mã vận đơn..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full pl-10 pr-4 py-2 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            <input type="text" placeholder="Tìm theo Serial, đơn vị, mã vận đơn..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full pl-10 pr-4 py-2 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white shadow-sm" />
           </div>
           <div className="flex items-center gap-2">
             <Filter size={18} className="text-slate-500" />
