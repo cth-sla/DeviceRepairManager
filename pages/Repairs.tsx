@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Customer, RepairTicket, DeviceType, RepairStatus, ShippingMethod, Organization } from '../types';
 import { StorageService } from '../services/storage';
-import { Plus, Search, Filter, AlertCircle, CheckCircle2, Clock, Truck, ChevronRight, X, History, Download, ChevronLeft, Loader2, Trash2, UserPlus, UserCheck, Barcode, Eye } from 'lucide-react';
+import { Plus, Search, Filter, AlertCircle, CheckCircle2, Clock, Truck, ChevronRight, X, History, Download, ChevronLeft, Loader2, Trash2, UserPlus, UserCheck, Barcode, Eye, Wrench } from 'lucide-react';
 import { HistoryModal } from '../components/HistoryModal';
 import { DeviceIcon } from '../components/DeviceIcon';
 import { ShippingStatusBadge } from '../components/ShippingStatusBadge';
@@ -106,7 +106,6 @@ export const RepairsPage: React.FC = () => {
   const handleSave = async () => {
     let finalCustomerId = formData.customerId;
 
-    // XỬ LÝ KHÁCH HÀNG MỚI (VỚI KIỂM TRA TRÙNG SỐ ĐIỆN THOẠI)
     if (isAddingNewCustomer) {
       if (!newCustomerData.fullName || !newCustomerData.organizationId) {
         alert('Vui lòng nhập tên khách hàng và chọn đơn vị cho khách hàng mới');
@@ -118,19 +117,17 @@ export const RepairsPage: React.FC = () => {
         const existing = customers.find(c => c.phone.trim() === phoneTrimmed);
         if (existing) {
           const useExisting = window.confirm(
-            `PHÁT HIỆN TRÙNG LẶP: Số điện thoại ${phoneTrimmed} đã tồn tại với tên "${existing.fullName}" tại "${getOrgName(existing.id)}". \n\nBạn có muốn sử dụng khách hàng hiện có này không?`
+            `Số điện thoại ${phoneTrimmed} đã tồn tại với tên "${existing.fullName}". Bạn có muốn dùng khách hàng cũ này?`
           );
           if (useExisting) {
             finalCustomerId = existing.id;
             setIsAddingNewCustomer(false);
           } else {
-            // Dừng lại để người dùng đổi số điện thoại hoặc chọn khách hàng khác
             return; 
           }
         }
       }
 
-      // Nếu người dùng vẫn muốn tạo mới (không trùng)
       if (isAddingNewCustomer && !finalCustomerId) {
         const newCustId = crypto.randomUUID();
         const customerToSave: Customer = {
@@ -145,32 +142,23 @@ export const RepairsPage: React.FC = () => {
         try {
           await StorageService.addCustomer(customerToSave);
           finalCustomerId = newCustId;
-          // Cập nhật local state để UI phản hồi ngay lập tức
           setCustomers(prev => [customerToSave, ...prev]);
         } catch (e) {
           console.error("Lỗi khi thêm khách hàng:", e);
-          alert('Không thể tạo khách hàng mới. Vui lòng thử lại.');
+          alert('Không thể tạo khách hàng mới.');
           return;
         }
       }
     }
 
-    // Kiểm tra tính hợp lệ của khách hàng
     if (!finalCustomerId) {
-      alert('Vui lòng chọn hoặc thêm khách hàng trước khi lưu phiếu.');
+      alert('Vui lòng chọn khách hàng.');
       return;
     }
 
     if (!formData.deviceType || !formData.receiveDate) {
       alert('Vui lòng điền loại thiết bị và ngày nhận.');
       return;
-    }
-
-    if (formData.status === RepairStatus.RETURNED) {
-      if (!formData.returnDate || !formData.shippingMethod) {
-        alert('Khi trạng thái là "Đã trả", vui lòng nhập ngày trả và đơn vị vận chuyển.');
-        return;
-      }
     }
 
     const newTicket: RepairTicket = {
@@ -199,7 +187,7 @@ export const RepairsPage: React.FC = () => {
       closeModal();
     } catch (e) {
       console.error("Lỗi lưu phiếu sửa chữa:", e);
-      alert('Có lỗi xảy ra khi lưu phiếu. Vui lòng đảm bảo các cột dữ liệu trong Supabase đã được cập nhật.');
+      alert('Có lỗi khi lưu phiếu. Vui lòng kiểm tra lại Schema SQL của bạn trên Supabase.');
     }
   };
 
@@ -217,7 +205,8 @@ export const RepairsPage: React.FC = () => {
         receiveDate: new Date().toISOString().split('T')[0],
         deviceType: DeviceType.CODEC,
         deviceCondition: '',
-        serialNumber: ''
+        serialNumber: '',
+        customerId: ''
       });
     }
     setIsModalOpen(true);
@@ -333,7 +322,7 @@ export const RepairsPage: React.FC = () => {
               {paginatedTickets.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="px-6 py-12 text-center text-slate-500 flex flex-col items-center justify-center">
-                    <WrenchIconPlaceholder />
+                    <Wrench size={48} className="text-slate-200" />
                     <span className="mt-2 font-medium">Không tìm thấy phiếu sửa chữa nào.</span>
                   </td>
                 </tr>
@@ -403,18 +392,15 @@ export const RepairsPage: React.FC = () => {
         </div>
 
         {filteredTickets.length > 0 && (
-          <div className="px-6 py-4 border-t border-slate-200 bg-slate-50 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="px-6 py-4 border-t border-slate-200 bg-slate-50 flex items-center justify-between">
             <div className="text-xs font-medium text-slate-500">
-              Hiển thị <span className="font-bold text-slate-900">{startIndex + 1}</span>-
-              <span className="font-bold text-slate-900">{Math.min(startIndex + ITEMS_PER_PAGE, filteredTickets.length)}</span> / 
-              <span className="font-bold text-slate-900">{filteredTickets.length}</span> phiếu
+              Trang {currentPage} / {totalPages || 1}
             </div>
             <div className="flex items-center gap-2">
-              <button onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))} disabled={currentPage === 1} className="p-2 border border-slate-300 rounded-lg hover:bg-white disabled:opacity-50 disabled:cursor-not-allowed bg-white text-slate-600 transition-colors shadow-sm">
+              <button onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))} disabled={currentPage === 1} className="p-2 border border-slate-300 rounded-lg hover:bg-white disabled:opacity-50 bg-white shadow-sm">
                 <ChevronLeft size={16} />
               </button>
-              <div className="px-4 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-bold text-slate-700 shadow-sm">Trang {currentPage} / {totalPages || 1}</div>
-              <button onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))} disabled={currentPage === totalPages || totalPages === 0} className="p-2 border border-slate-300 rounded-lg hover:bg-white disabled:opacity-50 disabled:cursor-not-allowed bg-white text-slate-600 transition-colors shadow-sm">
+              <button onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))} disabled={currentPage === totalPages || totalPages === 0} className="p-2 border border-slate-300 rounded-lg hover:bg-white disabled:opacity-50 bg-white shadow-sm">
                 <ChevronRight size={16} />
               </button>
             </div>
@@ -443,94 +429,56 @@ export const RepairsPage: React.FC = () => {
             </div>
             
             <div className="flex flex-col lg:flex-row overflow-hidden flex-1">
-              {/* Form Side */}
               <div className="flex-1 p-6 overflow-y-auto border-r border-slate-100 space-y-8">
-                {/* Customer Section */}
                 <div className="space-y-4">
                   <div className="flex items-center justify-between border-b border-slate-100 pb-2">
-                    <h4 className="text-xs font-bold text-slate-400 uppercase tracking-[0.15em]">1. Thông tin tiếp nhận</h4>
+                    <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest">1. Thông tin tiếp nhận</h4>
                     {!editingId && (
-                      <button 
-                        type="button"
-                        onClick={() => setIsAddingNewCustomer(!isAddingNewCustomer)}
-                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-bold transition-all border ${
-                          isAddingNewCustomer 
-                          ? 'bg-amber-100 text-amber-700 border-amber-200' 
-                          : 'bg-blue-100 text-blue-700 border-blue-200'
-                        }`}
-                      >
+                      <button type="button" onClick={() => setIsAddingNewCustomer(!isAddingNewCustomer)} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-bold transition-all border ${isAddingNewCustomer ? 'bg-amber-100 text-amber-700 border-amber-200' : 'bg-blue-100 text-blue-700 border-blue-200'}`}>
                         {isAddingNewCustomer ? <UserCheck size={14} /> : <UserPlus size={14} />}
-                        {isAddingNewCustomer ? 'Chọn lại danh sách' : 'Khách hàng mới'}
+                        {isAddingNewCustomer ? 'Chọn danh sách' : 'Khách hàng mới'}
                       </button>
                     )}
                   </div>
                   
                   <div className="grid grid-cols-1 gap-4">
                     {isAddingNewCustomer ? (
-                      <div className="bg-blue-50/40 p-5 rounded-2xl border border-blue-100/50 space-y-4 animate-in slide-in-from-top-2 duration-300">
+                      <div className="bg-blue-50/40 p-5 rounded-2xl border border-blue-100/50 space-y-4 animate-in fade-in">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div className="space-y-1">
-                            <label className="text-[10px] font-bold text-slate-500 uppercase ml-1">Tên khách hàng *</label>
-                            <input type="text" placeholder="Nguyễn Văn A" className="w-full px-4 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 bg-white" value={newCustomerData.fullName || ''} onChange={(e) => setNewCustomerData({...newCustomerData, fullName: e.target.value})} />
-                          </div>
-                          <div className="space-y-1">
-                            <label className="text-[10px] font-bold text-slate-500 uppercase ml-1">Đơn vị *</label>
-                            <select className="w-full px-4 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 bg-white" value={newCustomerData.organizationId || ''} onChange={(e) => setNewCustomerData({...newCustomerData, organizationId: e.target.value})} >
-                              <option value="">-- Chọn đơn vị --</option>
-                              {organizations.map(org => (<option key={org.id} value={org.id}>{org.name}</option>))}
-                            </select>
-                          </div>
+                          <input type="text" placeholder="Tên khách hàng *" className="w-full px-4 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 bg-white" value={newCustomerData.fullName || ''} onChange={(e) => setNewCustomerData({...newCustomerData, fullName: e.target.value})} />
+                          <select className="w-full px-4 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 bg-white" value={newCustomerData.organizationId || ''} onChange={(e) => setNewCustomerData({...newCustomerData, organizationId: e.target.value})} >
+                            <option value="">-- Chọn đơn vị --</option>
+                            {organizations.map(org => (<option key={org.id} value={org.id}>{org.name}</option>))}
+                          </select>
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div className="space-y-1">
-                            <label className="text-[10px] font-bold text-slate-500 uppercase ml-1">Số điện thoại</label>
-                            <input type="text" placeholder="09xx..." className="w-full px-4 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 bg-white" value={newCustomerData.phone || ''} onChange={(e) => setNewCustomerData({...newCustomerData, phone: e.target.value})} />
-                          </div>
-                          <div className="space-y-1">
-                            <label className="text-[10px] font-bold text-slate-500 uppercase ml-1">Địa chỉ</label>
-                            <input type="text" placeholder="Thành phố..." className="w-full px-4 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 bg-white" value={newCustomerData.address || ''} onChange={(e) => setNewCustomerData({...newCustomerData, address: e.target.value})} />
-                          </div>
+                          <input type="text" placeholder="Số điện thoại" className="w-full px-4 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 bg-white" value={newCustomerData.phone || ''} onChange={(e) => setNewCustomerData({...newCustomerData, phone: e.target.value})} />
+                          <input type="text" placeholder="Địa chỉ" className="w-full px-4 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 bg-white" value={newCustomerData.address || ''} onChange={(e) => setNewCustomerData({...newCustomerData, address: e.target.value})} />
                         </div>
                       </div>
                     ) : (
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                        <div className="space-y-1">
-                          <label className="text-[10px] font-bold text-slate-500 uppercase ml-1">Chọn Khách hàng *</label>
-                          <select className="w-full px-4 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 bg-white" value={formData.customerId || ''} onChange={(e) => setFormData({...formData, customerId: e.target.value})} disabled={customers.length === 0} >
-                            <option value="">-- Chọn khách hàng --</option>
-                            {customers.map(c => (<option key={c.id} value={c.id}>{c.fullName} - {getOrgName(c.id)}</option>))}
-                          </select>
-                        </div>
-                        <div className="space-y-1">
-                          <label className="text-[10px] font-bold text-slate-500 uppercase ml-1">Ngày tiếp nhận *</label>
-                          <input type="date" className="w-full px-4 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 bg-white" value={formData.receiveDate || ''} onChange={(e) => setFormData({...formData, receiveDate: e.target.value})} />
-                        </div>
+                        <select className="w-full px-4 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 bg-white shadow-sm" value={formData.customerId || ''} onChange={(e) => setFormData({...formData, customerId: e.target.value})} >
+                          <option value="">-- Chọn khách hàng --</option>
+                          {customers.map(c => (<option key={c.id} value={c.id}>{c.fullName} - {getOrgName(c.id)}</option>))}
+                        </select>
+                        <input type="date" className="w-full px-4 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 bg-white shadow-sm" value={formData.receiveDate || ''} onChange={(e) => setFormData({...formData, receiveDate: e.target.value})} />
                       </div>
                     )}
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-bold text-slate-500 uppercase ml-1">Loại thiết bị *</label>
-                      <select className="w-full px-4 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 bg-white" value={formData.deviceType || DeviceType.CODEC} onChange={(e) => setFormData({...formData, deviceType: e.target.value as DeviceType})}>
-                        {Object.values(DeviceType).map(t => (<option key={t} value={t}>{t}</option>))}
-                      </select>
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-bold text-slate-500 uppercase ml-1">Số Serial / Model</label>
-                      <input type="text" className="w-full px-4 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 uppercase font-mono shadow-sm bg-white" value={formData.serialNumber || ''} onChange={(e) => setFormData({...formData, serialNumber: e.target.value})} placeholder="VD: SN12345678" />
-                    </div>
+                    <select className="w-full px-4 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 bg-white" value={formData.deviceType || DeviceType.CODEC} onChange={(e) => setFormData({...formData, deviceType: e.target.value as DeviceType})}>
+                      {Object.values(DeviceType).map(t => (<option key={t} value={t}>{t}</option>))}
+                    </select>
+                    <input type="text" className="w-full px-4 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 uppercase font-mono shadow-sm bg-white" value={formData.serialNumber || ''} onChange={(e) => setFormData({...formData, serialNumber: e.target.value})} placeholder="VD: SN12345678" />
                   </div>
                     
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-slate-500 uppercase ml-1">Tình trạng mô tả</label>
-                    <textarea rows={2} className="w-full px-4 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 shadow-sm bg-white" value={formData.deviceCondition || ''} onChange={(e) => setFormData({...formData, deviceCondition: e.target.value})} placeholder="VD: Mất nguồn, sọc màn hình..." />
-                  </div>
+                  <textarea rows={2} className="w-full px-4 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 shadow-sm bg-white" value={formData.deviceCondition || ''} onChange={(e) => setFormData({...formData, deviceCondition: e.target.value})} placeholder="VD: Mất nguồn, sọc màn hình..." />
                 </div>
 
-                {/* Status Section */}
                 <div className="space-y-4">
-                  <h4 className="text-xs font-bold text-slate-400 uppercase tracking-[0.15em] border-b border-slate-100 pb-2">2. Cập nhật tiến độ</h4>
+                  <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100 pb-2">2. Cập nhật tiến độ</h4>
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                      {Object.values(RepairStatus).map((status) => (
                        <label key={status} className={`flex flex-col items-center justify-center p-4 rounded-2xl border-2 cursor-pointer transition-all ${formData.status === status ? 'bg-blue-600 border-blue-600 text-white shadow-lg' : 'bg-white border-slate-100 text-slate-500 hover:border-slate-300'}`}>
@@ -543,73 +491,32 @@ export const RepairsPage: React.FC = () => {
                   {formData.status === RepairStatus.RETURNED && (
                     <div className="bg-emerald-50/50 p-5 rounded-2xl border border-emerald-100 space-y-4 animate-in fade-in duration-300">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                         <div className="space-y-1">
-                          <label className="text-[10px] font-bold text-emerald-600 uppercase ml-1">Ngày xuất kho *</label>
-                          <input type="date" className="w-full px-4 py-2.5 border border-emerald-200 rounded-xl focus:ring-2 focus:ring-emerald-500 bg-white" value={formData.returnDate || new Date().toISOString().split('T')[0]} onChange={(e) => setFormData({...formData, returnDate: e.target.value})} />
-                        </div>
-                        <div className="space-y-1">
-                          <label className="text-[10px] font-bold text-emerald-600 uppercase ml-1">Kênh giao hàng *</label>
-                          <select className="w-full px-4 py-2.5 border border-emerald-200 rounded-xl focus:ring-2 focus:ring-emerald-500 bg-white font-medium" value={formData.shippingMethod || ShippingMethod.VIETTEL_POST} onChange={(e) => setFormData({...formData, shippingMethod: e.target.value as ShippingMethod})}>
-                             {Object.values(ShippingMethod).map(m => (<option key={m} value={m}>{m}</option>))}
-                          </select>
-                        </div>
+                        <input type="date" className="w-full px-4 py-2.5 border border-emerald-200 rounded-xl focus:ring-2 focus:ring-emerald-500 bg-white" value={formData.returnDate || new Date().toISOString().split('T')[0]} onChange={(e) => setFormData({...formData, returnDate: e.target.value})} />
+                        <select className="w-full px-4 py-2.5 border border-emerald-200 rounded-xl focus:ring-2 focus:ring-emerald-500 bg-white font-medium" value={formData.shippingMethod || ShippingMethod.VIETTEL_POST} onChange={(e) => setFormData({...formData, shippingMethod: e.target.value as ShippingMethod})}>
+                           {Object.values(ShippingMethod).map(m => (<option key={m} value={m}>{m}</option>))}
+                        </select>
                       </div>
-                      
-                      <div className="space-y-1">
-                        <label className="text-[10px] font-bold text-emerald-600 uppercase ml-1 flex items-center gap-1.5">
-                          <Barcode size={14} /> Mã vận đơn (Tracking ID)
-                        </label>
-                        <input type="text" className="w-full px-4 py-2.5 border border-emerald-200 rounded-xl focus:ring-2 focus:ring-emerald-500 uppercase font-mono bg-white" value={formData.trackingNumber || ''} onChange={(e) => setFormData({...formData, trackingNumber: e.target.value})} placeholder="VD: 123456789" />
-                      </div>
-
-                      <div className="space-y-1">
-                        <label className="text-[10px] font-bold text-emerald-600 uppercase ml-1">Ghi chú xuất xưởng</label>
-                        <textarea className="w-full px-4 py-2.5 border border-emerald-200 rounded-xl focus:ring-2 focus:ring-emerald-500 bg-white" rows={2} value={formData.returnNote || ''} onChange={(e) => setFormData({...formData, returnNote: e.target.value})} placeholder="VD: Đã thay linh kiện chính hãng..." />
-                      </div>
+                      <input type="text" className="w-full px-4 py-2.5 border border-emerald-200 rounded-xl focus:ring-2 focus:ring-emerald-500 uppercase font-mono bg-white" value={formData.trackingNumber || ''} onChange={(e) => setFormData({...formData, trackingNumber: e.target.value})} placeholder="Mã vận đơn..." />
+                      <textarea className="w-full px-4 py-2.5 border border-emerald-200 rounded-xl focus:ring-2 focus:ring-emerald-500 bg-white" rows={2} value={formData.returnNote || ''} onChange={(e) => setFormData({...formData, returnNote: e.target.value})} placeholder="Ghi chú xuất xưởng..." />
                     </div>
                   )}
                 </div>
               </div>
 
-              {/* Preview Pane */}
-              <div className="w-full lg:w-80 bg-slate-50 p-6 flex flex-col gap-6">
-                <div className="flex items-center gap-2 text-slate-400">
+              <div className="w-full lg:w-80 bg-slate-50 p-6">
+                <div className="flex items-center gap-2 text-slate-400 mb-6">
                   <Eye size={18} />
-                  <h4 className="text-[11px] font-bold uppercase tracking-widest">Xem trước hiển thị</h4>
+                  <h4 className="text-[11px] font-bold uppercase tracking-widest">Xem trước</h4>
                 </div>
-
-                <div className="bg-white rounded-2xl shadow-xl border border-white overflow-hidden flex flex-col min-h-[300px]">
-                   <div className="p-4 bg-slate-900 text-white flex justify-between items-center">
-                      <div className="flex items-center gap-2">
-                        <DeviceIcon type={formData.deviceType || 'Codec'} size={20} className="text-blue-400" />
-                        <span className="font-bold text-sm tracking-tight">{formData.deviceType || 'Loại TB'}</span>
-                      </div>
-                      <span className="text-[10px] font-mono text-slate-400">#PREVIEW</span>
-                   </div>
-
-                   <div className="p-5 flex-1 space-y-5">
-                      <div className="space-y-1">
-                        <div className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Khách hàng / Đơn vị</div>
-                        <div className="font-bold text-slate-800 leading-tight">{currentPreviewCustomer}</div>
-                        <div className="text-[11px] font-bold text-blue-600 uppercase">{currentPreviewOrg}</div>
-                      </div>
-
-                      <div className="flex justify-between items-end">
-                        <div className="space-y-1">
-                          <div className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Ngày nhận</div>
-                          <div className="text-sm font-bold text-slate-700 flex items-center gap-1">
-                             <Clock size={14} className="text-blue-500" />
-                             {formData.receiveDate || '---'}
-                          </div>
-                        </div>
-                        <span className={`px-2 py-1 rounded-lg border text-[9px] font-bold uppercase tracking-wider ${statusColors[formData.status as RepairStatus || RepairStatus.RECEIVED]}`}>
-                          {formData.status || RepairStatus.RECEIVED}
-                        </span>
-                      </div>
-                   </div>
-
-                   <div className="p-3 bg-slate-50 border-t border-slate-100 text-center text-[9px] text-slate-400 font-medium">
-                      Dữ liệu sẽ hiển thị trên bảng quản lý
+                <div className="bg-white rounded-2xl shadow-xl border border-white overflow-hidden p-5 space-y-4">
+                   <div className="text-[10px] uppercase font-bold text-slate-400">Phiếu tiếp nhận</div>
+                   <div className="font-bold text-slate-900 leading-tight">{currentPreviewCustomer}</div>
+                   <div className="text-[11px] font-bold text-blue-600 uppercase">{currentPreviewOrg}</div>
+                   <div className="pt-4 border-t border-slate-100 flex justify-between items-center">
+                      <span className="text-sm font-bold text-slate-700">{formData.receiveDate || '---'}</span>
+                      <span className={`px-2 py-1 rounded-lg border text-[9px] font-bold uppercase ${statusColors[formData.status as RepairStatus || RepairStatus.RECEIVED]}`}>
+                        {formData.status || 'RECEIVED'}
+                      </span>
                    </div>
                 </div>
               </div>
@@ -624,7 +531,7 @@ export const RepairsPage: React.FC = () => {
               <div className="flex gap-3">
                 <button onClick={closeModal} className="px-6 py-2.5 text-slate-600 hover:bg-slate-200 rounded-xl transition-all font-bold text-sm">Hủy bỏ</button>
                 <button onClick={handleSave} className="px-8 py-2.5 bg-blue-600 text-white hover:bg-blue-700 rounded-xl transition-all font-bold text-sm shadow-xl active:scale-95">
-                  {editingId ? 'Cập nhật thay đổi' : 'Lưu và Xuất bản'}
+                  Lưu phiếu
                 </button>
               </div>
             </div>
@@ -634,15 +541,3 @@ export const RepairsPage: React.FC = () => {
     </div>
   );
 };
-
-const WrenchIconPlaceholder = () => (
-  <svg className="w-16 h-16 text-slate-200" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-  </svg>
-);
-const Wrench = ({ size, className }: { size?: number, className?: string }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
-    <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
-  </svg>
-);
