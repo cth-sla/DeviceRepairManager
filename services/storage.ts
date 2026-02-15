@@ -1,4 +1,3 @@
-
 import { supabase, isSupabaseConfigured } from './client';
 import { Customer, RepairTicket, Organization, WarrantyTicket } from '../types';
 
@@ -15,10 +14,17 @@ const localDB = {
     try {
       const item = localStorage.getItem(key);
       return item ? JSON.parse(item) : [];
-    } catch { return []; }
+    } catch (e) { 
+      console.error(`LocalDB Get Error (${key}):`, e);
+      return []; 
+    }
   },
   set: <T>(key: string, data: T[]) => {
-    localStorage.setItem(key, JSON.stringify(data));
+    try {
+      localStorage.setItem(key, JSON.stringify(data));
+    } catch (e) {
+      console.error(`LocalDB Set Error (${key}):`, e);
+    }
   },
   add: <T>(key: string, item: T) => {
     const list = localDB.get<T>(key);
@@ -38,17 +44,22 @@ const localDB = {
 export const StorageService = {
   // --- ORGANIZATIONS ---
   getOrganizations: async (): Promise<Organization[]> => {
-    if (!isSupabaseConfigured) return localDB.get<Organization>(LS_KEYS.ORGS);
+    try {
+      if (!isSupabaseConfigured) return localDB.get<Organization>(LS_KEYS.ORGS);
 
-    const { data, error } = await supabase.from('organizations').select('*').order('created_at', { ascending: false });
-    if (error) { console.error('Error fetching orgs:', error); return []; }
-    
-    return data?.map((row: any) => ({
-      id: row.id,
-      name: row.name,
-      address: row.address,
-      createdAt: row.created_at || row.createdAt
-    })) || [];
+      const { data, error } = await supabase.from('organizations').select('*').order('created_at', { ascending: false });
+      if (error) throw error;
+      
+      return data?.map((row: any) => ({
+        id: row.id,
+        name: row.name || 'Không tên',
+        address: row.address || '',
+        createdAt: row.created_at || row.createdAt || Date.now()
+      })) || [];
+    } catch (e) {
+      console.error('Error fetching orgs:', e);
+      return [];
+    }
   },
 
   addOrganization: async (org: Organization) => {
@@ -60,7 +71,10 @@ export const StorageService = {
       address: org.address,
       created_at: org.createdAt
     }]);
-    if (error) throw error;
+    if (error) {
+      console.error('Add Organization Error:', error);
+      throw error;
+    }
   },
 
   updateOrganization: async (org: Organization) => {
@@ -68,9 +82,13 @@ export const StorageService = {
 
     const { error } = await supabase.from('organizations').update({
       name: org.name,
-      address: org.address
+      address: org.address,
+      created_at: org.createdAt // Đảm bảo giữ nguyên ngày tạo
     }).eq('id', org.id);
-    if (error) throw error;
+    if (error) {
+      console.error('Update Organization Error:', error);
+      throw error;
+    }
   },
 
   deleteOrganization: async (id: string) => {
@@ -85,19 +103,24 @@ export const StorageService = {
 
   // --- CUSTOMERS ---
   getCustomers: async (): Promise<Customer[]> => {
-    if (!isSupabaseConfigured) return localDB.get<Customer>(LS_KEYS.CUSTOMERS);
+    try {
+      if (!isSupabaseConfigured) return localDB.get<Customer>(LS_KEYS.CUSTOMERS);
 
-    const { data, error } = await supabase.from('customers').select('*').order('created_at', { ascending: false });
-    if (error) { console.error('Error fetching customers:', error); return []; }
-    
-    return data?.map((row: any) => ({
-      id: row.id,
-      fullName: row.full_name,
-      organizationId: row.organization_id,
-      phone: row.phone,
-      address: row.address,
-      createdAt: row.created_at
-    })) || [];
+      const { data, error } = await supabase.from('customers').select('*').order('created_at', { ascending: false });
+      if (error) throw error;
+      
+      return data?.map((row: any) => ({
+        id: row.id,
+        fullName: row.full_name || row.fullName,
+        organizationId: row.organization_id || row.organizationId,
+        phone: row.phone || '',
+        address: row.address || '',
+        createdAt: row.created_at || row.createdAt || Date.now()
+      })) || [];
+    } catch (e) {
+      console.error('Error fetching customers:', e);
+      return [];
+    }
   },
 
   addCustomer: async (c: Customer) => {
@@ -140,32 +163,36 @@ export const StorageService = {
 
   // --- REPAIR TICKETS ---
   getTickets: async (): Promise<RepairTicket[]> => {
-    if (!isSupabaseConfigured) return localDB.get<RepairTicket>(LS_KEYS.TICKETS);
+    try {
+      if (!isSupabaseConfigured) return localDB.get<RepairTicket>(LS_KEYS.TICKETS);
 
-    const { data, error } = await supabase.from('tickets').select('*').order('created_at', { ascending: false });
-    if (error) { console.error('Error fetching tickets:', error); return []; }
+      const { data, error } = await supabase.from('tickets').select('*').order('created_at', { ascending: false });
+      if (error) throw error;
 
-    return data?.map((row: any) => ({
-      id: row.id,
-      customerId: row.customer_id,
-      deviceType: row.device_type,
-      serialNumber: row.serial_number,
-      deviceCondition: row.device_condition,
-      receiveDate: row.receive_date,
-      status: row.status,
-      returnDate: row.return_date,
-      returnNote: row.return_note,
-      shippingMethod: row.shipping_method,
-      trackingNumber: row.tracking_number, 
-      createdAt: row.created_at,
-      updatedAt: row.updated_at
-    })) || [];
+      return data?.map((row: any) => ({
+        id: row.id,
+        customerId: row.customer_id || row.customerId,
+        deviceType: row.device_type || row.deviceType,
+        serialNumber: row.serial_number || row.serialNumber,
+        deviceCondition: row.device_condition || row.deviceCondition || '',
+        receiveDate: row.receive_date || row.receiveDate || '',
+        status: row.status,
+        returnDate: row.return_date || row.returnDate,
+        returnNote: row.return_note || row.returnNote,
+        shippingMethod: row.shipping_method || row.shippingMethod,
+        trackingNumber: row.tracking_number || row.trackingNumber, 
+        createdAt: row.created_at || row.createdAt || Date.now(),
+        updatedAt: row.updated_at || row.updatedAt || Date.now()
+      })) || [];
+    } catch (e) {
+      console.error('Error fetching tickets:', e);
+      return [];
+    }
   },
 
   addTicket: async (t: RepairTicket) => {
     if (!isSupabaseConfigured) return localDB.add(LS_KEYS.TICKETS, t);
 
-    // Ensure property accesses on 't' use camelCase to match RepairTicket interface (e.g. t.receiveDate)
     const dbRow = {
       id: t.id,
       customer_id: t.customerId,
@@ -188,7 +215,6 @@ export const StorageService = {
   updateTicket: async (t: RepairTicket) => {
     if (!isSupabaseConfigured) return localDB.update(LS_KEYS.TICKETS, t);
 
-    // Correcting line 173 (approx) in updateTicket to use t.receiveDate instead of t.receive_date
     const dbRow = {
       customer_id: t.customerId,
       device_type: t.deviceType,
@@ -218,27 +244,32 @@ export const StorageService = {
 
   // --- WARRANTY TICKETS ---
   getWarrantyTickets: async (): Promise<WarrantyTicket[]> => {
-    if (!isSupabaseConfigured) return localDB.get<WarrantyTicket>(LS_KEYS.WARRANTIES);
+    try {
+      if (!isSupabaseConfigured) return localDB.get<WarrantyTicket>(LS_KEYS.WARRANTIES);
 
-    const { data, error } = await supabase.from('warranties').select('*').order('created_at', { ascending: false });
-    if (error) { console.error('Error fetching warranties:', error); return []; }
+      const { data, error } = await supabase.from('warranties').select('*').order('created_at', { ascending: false });
+      if (error) throw error;
 
-    return data?.map((row: any) => ({
-      id: row.id,
-      organizationId: row.organization_id,
-      deviceType: row.device_type,
-      serialNumber: row.serial_number,
-      description: row.description,
-      sentDate: row.sent_date,
-      status: row.status,
-      returnDate: row.return_date,
-      cost: row.cost,
-      note: row.note,
-      shippingMethod: row.shipping_method,
-      trackingNumber: row.tracking_number, 
-      createdAt: row.created_at,
-      updatedAt: row.updated_at
-    })) || [];
+      return data?.map((row: any) => ({
+        id: row.id,
+        organizationId: row.organization_id || row.organizationId,
+        deviceType: row.device_type || row.deviceType,
+        serialNumber: row.serial_number || row.serialNumber,
+        description: row.description || '',
+        sentDate: row.sent_date || row.sentDate || '',
+        status: row.status,
+        returnDate: row.return_date || row.returnDate,
+        cost: row.cost,
+        note: row.note,
+        shippingMethod: row.shipping_method || row.shippingMethod,
+        trackingNumber: row.tracking_number || row.trackingNumber, 
+        createdAt: row.created_at || row.createdAt || Date.now(),
+        updatedAt: row.updated_at || row.updatedAt || Date.now()
+      })) || [];
+    } catch (e) {
+      console.error('Error fetching warranties:', e);
+      return [];
+    }
   },
 
   addWarrantyTicket: async (t: WarrantyTicket) => {
