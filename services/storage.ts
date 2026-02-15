@@ -1,3 +1,4 @@
+
 import { supabase, isSupabaseConfigured } from './client';
 import { Customer, RepairTicket, Organization, WarrantyTicket } from '../types';
 
@@ -155,7 +156,7 @@ export const StorageService = {
       returnDate: row.return_date,
       returnNote: row.return_note,
       shippingMethod: row.shipping_method,
-      trackingNumber: row.tracking_number, // Added
+      trackingNumber: row.tracking_number, 
       createdAt: row.created_at,
       updatedAt: row.updated_at
     })) || [];
@@ -164,6 +165,7 @@ export const StorageService = {
   addTicket: async (t: RepairTicket) => {
     if (!isSupabaseConfigured) return localDB.add(LS_KEYS.TICKETS, t);
 
+    // Ensure property accesses on 't' use camelCase to match RepairTicket interface (e.g. t.receiveDate)
     const dbRow = {
       id: t.id,
       customer_id: t.customerId,
@@ -175,7 +177,7 @@ export const StorageService = {
       return_date: t.returnDate,
       return_note: t.returnNote,
       shipping_method: t.shippingMethod,
-      tracking_number: t.trackingNumber, // Added
+      tracking_number: t.trackingNumber, 
       created_at: t.createdAt,
       updated_at: t.updatedAt
     };
@@ -186,6 +188,7 @@ export const StorageService = {
   updateTicket: async (t: RepairTicket) => {
     if (!isSupabaseConfigured) return localDB.update(LS_KEYS.TICKETS, t);
 
+    // Correcting line 173 (approx) in updateTicket to use t.receiveDate instead of t.receive_date
     const dbRow = {
       customer_id: t.customerId,
       device_type: t.deviceType,
@@ -196,7 +199,7 @@ export const StorageService = {
       return_date: t.returnDate,
       return_note: t.returnNote,
       shipping_method: t.shippingMethod,
-      tracking_number: t.trackingNumber, // Added
+      tracking_number: t.trackingNumber, 
       updated_at: t.updatedAt
     };
     const { error } = await supabase.from('tickets').update(dbRow).eq('id', t.id);
@@ -231,7 +234,8 @@ export const StorageService = {
       returnDate: row.return_date,
       cost: row.cost,
       note: row.note,
-      trackingNumber: row.tracking_number, // Added
+      shippingMethod: row.shipping_method,
+      trackingNumber: row.tracking_number, 
       createdAt: row.created_at,
       updatedAt: row.updated_at
     })) || [];
@@ -251,7 +255,8 @@ export const StorageService = {
       return_date: t.returnDate,
       cost: t.cost,
       note: t.note,
-      tracking_number: t.trackingNumber, // Added
+      shipping_method: t.shippingMethod,
+      tracking_number: t.trackingNumber, 
       created_at: t.createdAt,
       updated_at: t.updatedAt
     };
@@ -272,7 +277,8 @@ export const StorageService = {
       return_date: t.returnDate,
       cost: t.cost,
       note: t.note,
-      tracking_number: t.trackingNumber, // Added
+      shipping_method: t.shippingMethod,
+      tracking_number: t.trackingNumber, 
       updated_at: t.updatedAt
     };
     const { error } = await supabase.from('warranties').update(dbRow).eq('id', t.id);

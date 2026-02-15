@@ -59,7 +59,7 @@ export interface RepairTicket {
   returnDate?: string;
   returnNote?: string;
   shippingMethod?: ShippingMethod;
-  trackingNumber?: string; // New field
+  trackingNumber?: string; 
   
   createdAt: number;
   updatedAt: number;
@@ -78,7 +78,8 @@ export interface WarrantyTicket {
   returnDate?: string;
   cost?: number;
   note?: string;
-  trackingNumber?: string; // New field
+  shippingMethod?: ShippingMethod; // Added
+  trackingNumber?: string; 
   
   createdAt: number;
   updatedAt: number;
