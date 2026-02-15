@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Customer, RepairTicket, DeviceType, RepairStatus, ShippingMethod, Organization } from '../types';
 import { StorageService } from '../services/storage';
-import { Plus, Search, Filter, AlertCircle, CheckCircle2, Clock, Truck, ChevronRight, X, History, Download, ChevronLeft, Loader2, Trash2, UserPlus, UserCheck } from 'lucide-react';
+import { Plus, Search, Filter, AlertCircle, CheckCircle2, Clock, Truck, ChevronRight, X, History, Download, ChevronLeft, Loader2, Trash2, UserPlus, UserCheck, Barcode } from 'lucide-react';
 import { HistoryModal } from '../components/HistoryModal';
 import { DeviceIcon } from '../components/DeviceIcon';
+import { ShippingStatusBadge } from '../components/ShippingStatusBadge';
 
 export const RepairsPage: React.FC = () => {
   const [tickets, setTickets] = useState<RepairTicket[]>([]);
@@ -82,12 +83,12 @@ export const RepairsPage: React.FC = () => {
   };
 
   const handleExport = () => {
-    const headers = ["Mã Phiếu", "Ngày Nhận", "Tên Khách Hàng", "Đơn Vị", "Số Điện Thoại", "Loại Thiết Bị", "Số Serial", "Tình Trạng", "Trạng Thái", "Ngày Trả", "Vận Chuyển", "Ghi Chú"];
+    const headers = ["Mã Phiếu", "Ngày Nhận", "Tên Khách Hàng", "Đơn Vị", "Số Điện Thoại", "Loại Thiết Bị", "Số Serial", "Tình Trạng", "Trạng Thái", "Ngày Trả", "Vận Chuyển", "Mã Vận Đơn", "Ghi Chú"];
     const rows = tickets.map(t => {
       const c = getCustomer(t.customerId);
       const org = getOrgName(t.customerId);
       return [
-        t.id.slice(0, 8), t.receiveDate, c ? c.fullName : '', org, c ? `'${c.phone}` : '', t.deviceType, t.serialNumber || '', t.deviceCondition, t.status, t.returnDate || '', t.shippingMethod || '', t.returnNote || ''
+        t.id.slice(0, 8), t.receiveDate, c ? c.fullName : '', org, c ? `'${c.phone}` : '', t.deviceType, t.serialNumber || '', t.deviceCondition, t.status, t.returnDate || '', t.shippingMethod || '', t.trackingNumber || '', t.returnNote || ''
       ].map(field => `"${field}"`).join(',');
     });
     const csvContent = "\uFEFF" + [headers.join(','), ...rows].join('\n');
@@ -104,7 +105,6 @@ export const RepairsPage: React.FC = () => {
   const handleSave = async () => {
     let finalCustomerId = formData.customerId;
 
-    // 1. Handle New Customer Creation if toggle is on
     if (isAddingNewCustomer) {
       if (!newCustomerData.fullName || !newCustomerData.organizationId) {
         alert('Vui lòng nhập tên khách hàng và chọn đơn vị cho khách hàng mới');
@@ -124,7 +124,6 @@ export const RepairsPage: React.FC = () => {
       try {
         await StorageService.addCustomer(customerToSave);
         finalCustomerId = newCustId;
-        // Update local list for immediate use
         setCustomers(prev => [customerToSave, ...prev]);
       } catch (e) {
         console.error(e);
@@ -156,6 +155,7 @@ export const RepairsPage: React.FC = () => {
       returnDate: formData.returnDate,
       returnNote: formData.returnNote,
       shippingMethod: formData.shippingMethod as ShippingMethod,
+      trackingNumber: formData.trackingNumber, // Updated
       createdAt: editingId ? (tickets.find(t => t.id === editingId)?.createdAt || Date.now()) : Date.now(),
       updatedAt: Date.now()
     };
@@ -226,7 +226,7 @@ export const RepairsPage: React.FC = () => {
   const filteredTickets = tickets.filter(t => {
     const customer = getCustomer(t.customerId);
     const orgName = getOrgName(t.customerId);
-    const matchesSearch = customer?.fullName.toLowerCase().includes(searchTerm.toLowerCase()) || orgName.toLowerCase().includes(searchTerm.toLowerCase()) || t.deviceType.toLowerCase().includes(searchTerm.toLowerCase()) || (t.serialNumber && t.serialNumber.toLowerCase().includes(searchTerm.toLowerCase())) || t.id.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = customer?.fullName.toLowerCase().includes(searchTerm.toLowerCase()) || orgName.toLowerCase().includes(searchTerm.toLowerCase()) || t.deviceType.toLowerCase().includes(searchTerm.toLowerCase()) || (t.serialNumber && t.serialNumber.toLowerCase().includes(searchTerm.toLowerCase())) || t.id.toLowerCase().includes(searchTerm.toLowerCase()) || (t.trackingNumber && t.trackingNumber.toLowerCase().includes(searchTerm.toLowerCase()));
     const matchesStatus = statusFilter === 'ALL' || t.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
@@ -334,15 +334,15 @@ export const RepairsPage: React.FC = () => {
                       </td>
                       <td className="px-6 py-4">
                         {ticket.status === RepairStatus.RETURNED ? (
-                          <div className="text-xs">
-                             <div className="flex items-center gap-1 font-medium text-green-700 mb-1 whitespace-nowrap">
-                                <CheckCircle2 size={12} />
+                          <div className="space-y-1.5">
+                             <div className="flex items-center gap-1 font-bold text-green-700 text-[10px] whitespace-nowrap">
+                                <CheckCircle2 size={10} />
                                 {ticket.returnDate}
                              </div>
-                            <div className="flex items-center gap-1 text-slate-600 whitespace-nowrap">
-                              <Truck size={12} />
-                              {ticket.shippingMethod}
-                            </div>
+                             <div className="text-[10px] text-slate-600 font-medium">
+                               {ticket.shippingMethod}
+                             </div>
+                             <ShippingStatusBadge carrier={ticket.shippingMethod} trackingNumber={ticket.trackingNumber} />
                           </div>
                         ) : (<span className="text-slate-400 text-xs italic">---</span>)}
                       </td>
@@ -535,7 +535,7 @@ export const RepairsPage: React.FC = () => {
                   <div className="bg-green-50 p-4 rounded-lg border border-green-100 space-y-4 animate-in fade-in slide-in-from-top-2">
                     <div className="flex items-start gap-2 text-green-800 text-sm mb-2">
                       <Truck size={16} className="mt-0.5" />
-                      <span>Thông tin người nhận sẽ được lấy tự động từ dữ liệu khách hàng.</span>
+                      <span>Thông tin trả hàng. Nhập mã vận đơn để tra cứu tự động.</span>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                        <div className="space-y-1">
@@ -549,6 +549,21 @@ export const RepairsPage: React.FC = () => {
                         </select>
                       </div>
                     </div>
+                    
+                    <div className="space-y-1">
+                      <label className="text-sm font-medium text-slate-700 flex items-center gap-1.5">
+                        <Barcode size={14} className="text-slate-500" />
+                        Mã vận đơn (Tracking ID)
+                      </label>
+                      <input 
+                        type="text" 
+                        className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:outline-none uppercase font-mono" 
+                        value={formData.trackingNumber || ''} 
+                        onChange={(e) => setFormData({...formData, trackingNumber: e.target.value})} 
+                        placeholder="VD: 1234567890" 
+                      />
+                    </div>
+
                     <div className="space-y-1">
                       <label className="text-sm font-medium text-slate-700">Ghi chú trả hàng</label>
                       <textarea className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:outline-none" rows={2} value={formData.returnNote || ''} onChange={(e) => setFormData({...formData, returnNote: e.target.value})} placeholder="VD: Đã thay main, kèm dây nguồn..." />

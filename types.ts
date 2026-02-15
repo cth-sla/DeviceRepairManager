@@ -9,6 +9,8 @@ export enum DeviceType {
 
 export enum ShippingMethod {
   VIETTEL_POST = 'Viettel Post',
+  GHN = 'Giao Hàng Nhanh',
+  GHTK = 'Giao Hàng Tiết Kiệm',
   TAXI = 'Taxi',
   BUS = 'Xe Buýt',
   DIRECT = 'Trực tiếp'
@@ -37,7 +39,7 @@ export interface Organization {
 export interface Customer {
   id: string;
   fullName: string;
-  organizationId: string; // Changed from free text to ID reference
+  organizationId: string;
   phone: string;
   address: string;
   createdAt: number;
@@ -47,9 +49,9 @@ export interface RepairTicket {
   id: string;
   customerId: string;
   deviceType: DeviceType;
-  serialNumber?: string; // Added for device history tracking
-  deviceCondition: string; // Tình trạng
-  receiveDate: string; // ISO Date string
+  serialNumber?: string;
+  deviceCondition: string;
+  receiveDate: string;
   
   status: RepairStatus;
   
@@ -57,6 +59,7 @@ export interface RepairTicket {
   returnDate?: string;
   returnNote?: string;
   shippingMethod?: ShippingMethod;
+  trackingNumber?: string; // New field
   
   createdAt: number;
   updatedAt: number;
@@ -64,26 +67,41 @@ export interface RepairTicket {
 
 export interface WarrantyTicket {
   id: string;
-  organizationId: string; // ID của Đơn vị (Hãng/Trung tâm sửa chữa)
+  organizationId: string;
   deviceType: DeviceType;
   serialNumber?: string;
-  description: string; // Mô tả lỗi/Tình trạng
+  description: string;
   sentDate: string;
   
   status: WarrantyStatus;
   
   returnDate?: string;
-  cost?: number; // Chi phí sửa chữa
-  note?: string; // Ghi chú thêm
+  cost?: number;
+  note?: string;
+  trackingNumber?: string; // New field
   
   createdAt: number;
   updatedAt: number;
 }
 
-// Stats interface for dashboard
 export interface DashboardStats {
   totalTickets: number;
   processing: number;
   returned: number;
   received: number;
+}
+
+export interface ShippingStep {
+  status: string;
+  location: string;
+  time: string;
+  description: string;
+}
+
+export interface ShippingInfo {
+  carrier: ShippingMethod;
+  trackingNumber: string;
+  currentStatus: string;
+  lastUpdate: string;
+  steps: ShippingStep[];
 }
