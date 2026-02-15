@@ -36,15 +36,20 @@ export const RepairsPage: React.FC = () => {
 
   const fetchData = async () => {
     setIsLoading(true);
-    const [t, c, o] = await Promise.all([
-      StorageService.getTickets(),
-      StorageService.getCustomers(),
-      StorageService.getOrganizations()
-    ]);
-    setTickets(t);
-    setCustomers(c);
-    setOrganizations(o);
-    setIsLoading(false);
+    try {
+      const [t, c, o] = await Promise.all([
+        StorageService.getTickets(),
+        StorageService.getCustomers(),
+        StorageService.getOrganizations()
+      ]);
+      setTickets(t);
+      setCustomers(c);
+      setOrganizations(o);
+    } catch (err) {
+      console.error("Fetch data error:", err);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -108,30 +113,31 @@ export const RepairsPage: React.FC = () => {
         return;
       }
 
-      const phoneTrimmed = newCustomerData.phone?.trim();
+      const phoneTrimmed = newCustomerData.phone?.trim() || '';
       if (phoneTrimmed) {
         const existing = customers.find(c => c.phone.trim() === phoneTrimmed);
         if (existing) {
           const useExisting = window.confirm(
-            `PHÁT HIỆN TRÙNG LẶP: Số điện thoại ${phoneTrimmed} đã tồn tại với tên "${existing.fullName}". \n\nBạn có muốn sử dụng khách hàng này thay vì tạo mới không?`
+            `PHÁT HIỆN TRÙNG LẶP: Số điện thoại ${phoneTrimmed} đã tồn tại với tên "${existing.fullName}" tại "${getOrgName(existing.id)}". \n\nBạn có muốn sử dụng khách hàng hiện có này không?`
           );
           if (useExisting) {
             finalCustomerId = existing.id;
             setIsAddingNewCustomer(false);
           } else {
-            return; // Dừng lại để người dùng đổi số điện thoại
+            // Dừng lại để người dùng đổi số điện thoại hoặc chọn khách hàng khác
+            return; 
           }
         }
       }
 
-      // Nếu vẫn là khách hàng mới (không trùng hoặc người dùng chấp nhận tiếp tục)
+      // Nếu người dùng vẫn muốn tạo mới (không trùng)
       if (isAddingNewCustomer && !finalCustomerId) {
         const newCustId = crypto.randomUUID();
         const customerToSave: Customer = {
           id: newCustId,
           fullName: newCustomerData.fullName!.trim(),
           organizationId: newCustomerData.organizationId!,
-          phone: phoneTrimmed || '',
+          phone: phoneTrimmed,
           address: newCustomerData.address?.trim() || '',
           createdAt: Date.now()
         };
@@ -139,18 +145,24 @@ export const RepairsPage: React.FC = () => {
         try {
           await StorageService.addCustomer(customerToSave);
           finalCustomerId = newCustId;
-          // Cập nhật local state để hiển thị ngay
+          // Cập nhật local state để UI phản hồi ngay lập tức
           setCustomers(prev => [customerToSave, ...prev]);
         } catch (e) {
-          console.error(e);
-          alert('Lỗi khi lưu thông tin khách hàng mới');
+          console.error("Lỗi khi thêm khách hàng:", e);
+          alert('Không thể tạo khách hàng mới. Vui lòng thử lại.');
           return;
         }
       }
     }
 
-    if (!finalCustomerId || !formData.deviceType || !formData.receiveDate) {
-      alert('Vui lòng chọn khách hàng và điền đầy đủ thông tin thiết bị');
+    // Kiểm tra tính hợp lệ của khách hàng
+    if (!finalCustomerId) {
+      alert('Vui lòng chọn hoặc thêm khách hàng trước khi lưu phiếu.');
+      return;
+    }
+
+    if (!formData.deviceType || !formData.receiveDate) {
+      alert('Vui lòng điền loại thiết bị và ngày nhận.');
       return;
     }
 
@@ -169,10 +181,10 @@ export const RepairsPage: React.FC = () => {
       deviceCondition: formData.deviceCondition || 'Không rõ',
       receiveDate: formData.receiveDate,
       status: formData.status || RepairStatus.RECEIVED,
-      returnDate: formData.returnDate,
-      returnNote: formData.returnNote,
+      returnDate: formData.returnDate || '',
+      returnNote: formData.returnNote || '',
       shippingMethod: formData.shippingMethod as ShippingMethod,
-      trackingNumber: formData.trackingNumber?.trim(),
+      trackingNumber: formData.trackingNumber?.trim() || '',
       createdAt: editingId ? (tickets.find(t => t.id === editingId)?.createdAt || Date.now()) : Date.now(),
       updatedAt: Date.now()
     };
@@ -186,8 +198,8 @@ export const RepairsPage: React.FC = () => {
       await fetchData();
       closeModal();
     } catch (e) {
-      console.error(e);
-      alert('Lỗi khi lưu phiếu sửa chữa');
+      console.error("Lỗi lưu phiếu sửa chữa:", e);
+      alert('Có lỗi xảy ra khi lưu phiếu. Vui lòng đảm bảo các cột dữ liệu trong Supabase đã được cập nhật.');
     }
   };
 
@@ -257,7 +269,6 @@ export const RepairsPage: React.FC = () => {
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
   const paginatedTickets = filteredTickets.slice(startIndex, startIndex + ITEMS_PER_PAGE);
 
-  // Helper for Modal Preview
   const currentPreviewCustomer = isAddingNewCustomer 
     ? newCustomerData.fullName || 'Đang nhập tên...' 
     : getCustomer(formData.customerId || '')?.fullName || 'Chưa chọn khách hàng';
@@ -290,7 +301,7 @@ export const RepairsPage: React.FC = () => {
         <div className="p-4 border-b border-slate-200 bg-slate-50 flex flex-col md:flex-row gap-4 justify-between">
           <div className="relative max-w-md w-full">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-            <input type="text" placeholder="Tìm theo Serial, khách hàng, đơn vị..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full pl-10 pr-4 py-2 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white" />
+            <input type="text" placeholder="Tìm theo Serial, khách hàng, đơn vị..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full pl-10 pr-4 py-2 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white shadow-sm" />
           </div>
           <div className="flex items-center gap-2">
             <Filter size={18} className="text-slate-500" />
@@ -413,13 +424,13 @@ export const RepairsPage: React.FC = () => {
 
       <HistoryModal isOpen={isHistoryOpen} onClose={() => setIsHistoryOpen(false)} tickets={historyTickets} customers={customers} organizations={organizations} title={historyTitle} />
 
-      {/* Modal Form with Preview Side Pane */}
+      {/* Modal Form */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl my-4 flex flex-col max-h-[95vh] border border-white/20">
             <div className="px-6 py-5 border-b border-slate-200 flex justify-between items-center bg-slate-50 rounded-t-2xl sticky top-0 z-10">
               <div className="flex items-center gap-3">
-                 <div className="p-2 bg-blue-600 rounded-lg text-white shadow-lg shadow-blue-600/20">
+                 <div className="p-2 bg-blue-600 rounded-lg text-white">
                     <Wrench size={20} />
                  </div>
                  <h3 className="font-bold text-xl text-slate-800">
@@ -460,11 +471,11 @@ export const RepairsPage: React.FC = () => {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <div className="space-y-1">
                             <label className="text-[10px] font-bold text-slate-500 uppercase ml-1">Tên khách hàng *</label>
-                            <input type="text" placeholder="Nguyễn Văn A" className="w-full px-4 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white shadow-sm" value={newCustomerData.fullName || ''} onChange={(e) => setNewCustomerData({...newCustomerData, fullName: e.target.value})} />
+                            <input type="text" placeholder="Nguyễn Văn A" className="w-full px-4 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 bg-white" value={newCustomerData.fullName || ''} onChange={(e) => setNewCustomerData({...newCustomerData, fullName: e.target.value})} />
                           </div>
                           <div className="space-y-1">
                             <label className="text-[10px] font-bold text-slate-500 uppercase ml-1">Đơn vị *</label>
-                            <select className="w-full px-4 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white shadow-sm" value={newCustomerData.organizationId || ''} onChange={(e) => setNewCustomerData({...newCustomerData, organizationId: e.target.value})} >
+                            <select className="w-full px-4 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 bg-white" value={newCustomerData.organizationId || ''} onChange={(e) => setNewCustomerData({...newCustomerData, organizationId: e.target.value})} >
                               <option value="">-- Chọn đơn vị --</option>
                               {organizations.map(org => (<option key={org.id} value={org.id}>{org.name}</option>))}
                             </select>
@@ -473,11 +484,11 @@ export const RepairsPage: React.FC = () => {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <div className="space-y-1">
                             <label className="text-[10px] font-bold text-slate-500 uppercase ml-1">Số điện thoại</label>
-                            <input type="text" placeholder="09xx..." className="w-full px-4 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white shadow-sm" value={newCustomerData.phone || ''} onChange={(e) => setNewCustomerData({...newCustomerData, phone: e.target.value})} />
+                            <input type="text" placeholder="09xx..." className="w-full px-4 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 bg-white" value={newCustomerData.phone || ''} onChange={(e) => setNewCustomerData({...newCustomerData, phone: e.target.value})} />
                           </div>
                           <div className="space-y-1">
                             <label className="text-[10px] font-bold text-slate-500 uppercase ml-1">Địa chỉ</label>
-                            <input type="text" placeholder="Thành phố..." className="w-full px-4 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white shadow-sm" value={newCustomerData.address || ''} onChange={(e) => setNewCustomerData({...newCustomerData, address: e.target.value})} />
+                            <input type="text" placeholder="Thành phố..." className="w-full px-4 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 bg-white" value={newCustomerData.address || ''} onChange={(e) => setNewCustomerData({...newCustomerData, address: e.target.value})} />
                           </div>
                         </div>
                       </div>
@@ -485,14 +496,14 @@ export const RepairsPage: React.FC = () => {
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                         <div className="space-y-1">
                           <label className="text-[10px] font-bold text-slate-500 uppercase ml-1">Chọn Khách hàng *</label>
-                          <select className="w-full px-4 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 bg-white shadow-sm" value={formData.customerId || ''} onChange={(e) => setFormData({...formData, customerId: e.target.value})} disabled={customers.length === 0} >
+                          <select className="w-full px-4 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 bg-white" value={formData.customerId || ''} onChange={(e) => setFormData({...formData, customerId: e.target.value})} disabled={customers.length === 0} >
                             <option value="">-- Chọn khách hàng --</option>
                             {customers.map(c => (<option key={c.id} value={c.id}>{c.fullName} - {getOrgName(c.id)}</option>))}
                           </select>
                         </div>
                         <div className="space-y-1">
                           <label className="text-[10px] font-bold text-slate-500 uppercase ml-1">Ngày tiếp nhận *</label>
-                          <input type="date" className="w-full px-4 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 bg-white shadow-sm" value={formData.receiveDate || ''} onChange={(e) => setFormData({...formData, receiveDate: e.target.value})} />
+                          <input type="date" className="w-full px-4 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 bg-white" value={formData.receiveDate || ''} onChange={(e) => setFormData({...formData, receiveDate: e.target.value})} />
                         </div>
                       </div>
                     )}
@@ -501,7 +512,7 @@ export const RepairsPage: React.FC = () => {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                     <div className="space-y-1">
                       <label className="text-[10px] font-bold text-slate-500 uppercase ml-1">Loại thiết bị *</label>
-                      <select className="w-full px-4 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 bg-white shadow-sm" value={formData.deviceType || DeviceType.CODEC} onChange={(e) => setFormData({...formData, deviceType: e.target.value as DeviceType})}>
+                      <select className="w-full px-4 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 bg-white" value={formData.deviceType || DeviceType.CODEC} onChange={(e) => setFormData({...formData, deviceType: e.target.value as DeviceType})}>
                         {Object.values(DeviceType).map(t => (<option key={t} value={t}>{t}</option>))}
                       </select>
                     </div>
@@ -522,7 +533,7 @@ export const RepairsPage: React.FC = () => {
                   <h4 className="text-xs font-bold text-slate-400 uppercase tracking-[0.15em] border-b border-slate-100 pb-2">2. Cập nhật tiến độ</h4>
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                      {Object.values(RepairStatus).map((status) => (
-                       <label key={status} className={`flex flex-col items-center justify-center p-4 rounded-2xl border-2 cursor-pointer transition-all ${formData.status === status ? 'bg-blue-600 border-blue-600 text-white shadow-lg shadow-blue-600/20' : 'bg-white border-slate-100 text-slate-500 hover:border-slate-300'}`}>
+                       <label key={status} className={`flex flex-col items-center justify-center p-4 rounded-2xl border-2 cursor-pointer transition-all ${formData.status === status ? 'bg-blue-600 border-blue-600 text-white shadow-lg' : 'bg-white border-slate-100 text-slate-500 hover:border-slate-300'}`}>
                          <input type="radio" name="status" value={status} checked={formData.status === status} onChange={(e) => setFormData({...formData, status: e.target.value as RepairStatus})} className="hidden" />
                          <span className="font-bold text-sm">{status}</span>
                        </label>
@@ -530,15 +541,15 @@ export const RepairsPage: React.FC = () => {
                   </div>
 
                   {formData.status === RepairStatus.RETURNED && (
-                    <div className="bg-emerald-50/50 p-5 rounded-2xl border border-emerald-100 space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                    <div className="bg-emerald-50/50 p-5 rounded-2xl border border-emerald-100 space-y-4 animate-in fade-in duration-300">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                          <div className="space-y-1">
                           <label className="text-[10px] font-bold text-emerald-600 uppercase ml-1">Ngày xuất kho *</label>
-                          <input type="date" className="w-full px-4 py-2.5 border border-emerald-200 rounded-xl focus:ring-2 focus:ring-emerald-500 bg-white shadow-sm" value={formData.returnDate || new Date().toISOString().split('T')[0]} onChange={(e) => setFormData({...formData, returnDate: e.target.value})} />
+                          <input type="date" className="w-full px-4 py-2.5 border border-emerald-200 rounded-xl focus:ring-2 focus:ring-emerald-500 bg-white" value={formData.returnDate || new Date().toISOString().split('T')[0]} onChange={(e) => setFormData({...formData, returnDate: e.target.value})} />
                         </div>
                         <div className="space-y-1">
                           <label className="text-[10px] font-bold text-emerald-600 uppercase ml-1">Kênh giao hàng *</label>
-                          <select className="w-full px-4 py-2.5 border border-emerald-200 rounded-xl focus:ring-2 focus:ring-emerald-500 bg-white shadow-sm font-medium" value={formData.shippingMethod || ShippingMethod.VIETTEL_POST} onChange={(e) => setFormData({...formData, shippingMethod: e.target.value as ShippingMethod})}>
+                          <select className="w-full px-4 py-2.5 border border-emerald-200 rounded-xl focus:ring-2 focus:ring-emerald-500 bg-white font-medium" value={formData.shippingMethod || ShippingMethod.VIETTEL_POST} onChange={(e) => setFormData({...formData, shippingMethod: e.target.value as ShippingMethod})}>
                              {Object.values(ShippingMethod).map(m => (<option key={m} value={m}>{m}</option>))}
                           </select>
                         </div>
@@ -548,37 +559,34 @@ export const RepairsPage: React.FC = () => {
                         <label className="text-[10px] font-bold text-emerald-600 uppercase ml-1 flex items-center gap-1.5">
                           <Barcode size={14} /> Mã vận đơn (Tracking ID)
                         </label>
-                        <input type="text" className="w-full px-4 py-2.5 border border-emerald-200 rounded-xl focus:ring-2 focus:ring-emerald-500 uppercase font-mono shadow-sm bg-white" value={formData.trackingNumber || ''} onChange={(e) => setFormData({...formData, trackingNumber: e.target.value})} placeholder="VD: 123456789" />
+                        <input type="text" className="w-full px-4 py-2.5 border border-emerald-200 rounded-xl focus:ring-2 focus:ring-emerald-500 uppercase font-mono bg-white" value={formData.trackingNumber || ''} onChange={(e) => setFormData({...formData, trackingNumber: e.target.value})} placeholder="VD: 123456789" />
                       </div>
 
                       <div className="space-y-1">
                         <label className="text-[10px] font-bold text-emerald-600 uppercase ml-1">Ghi chú xuất xưởng</label>
-                        <textarea className="w-full px-4 py-2.5 border border-emerald-200 rounded-xl focus:ring-2 focus:ring-emerald-500 shadow-sm bg-white" rows={2} value={formData.returnNote || ''} onChange={(e) => setFormData({...formData, returnNote: e.target.value})} placeholder="VD: Đã thay linh kiện chính hãng, tặng kèm bao da..." />
+                        <textarea className="w-full px-4 py-2.5 border border-emerald-200 rounded-xl focus:ring-2 focus:ring-emerald-500 bg-white" rows={2} value={formData.returnNote || ''} onChange={(e) => setFormData({...formData, returnNote: e.target.value})} placeholder="VD: Đã thay linh kiện chính hãng..." />
                       </div>
                     </div>
                   )}
                 </div>
               </div>
 
-              {/* Preview Side Pane */}
+              {/* Preview Pane */}
               <div className="w-full lg:w-80 bg-slate-50 p-6 flex flex-col gap-6">
                 <div className="flex items-center gap-2 text-slate-400">
                   <Eye size={18} />
                   <h4 className="text-[11px] font-bold uppercase tracking-widest">Xem trước hiển thị</h4>
                 </div>
 
-                {/* Preview Card */}
-                <div className="bg-white rounded-2xl shadow-xl border border-white overflow-hidden flex flex-col min-h-[300px] transition-all hover:scale-[1.02]">
-                   {/* Header of Preview */}
+                <div className="bg-white rounded-2xl shadow-xl border border-white overflow-hidden flex flex-col min-h-[300px]">
                    <div className="p-4 bg-slate-900 text-white flex justify-between items-center">
                       <div className="flex items-center gap-2">
                         <DeviceIcon type={formData.deviceType || 'Codec'} size={20} className="text-blue-400" />
-                        <span className="font-bold text-sm tracking-tight">{formData.deviceType || 'Tên thiết bị'}</span>
+                        <span className="font-bold text-sm tracking-tight">{formData.deviceType || 'Loại TB'}</span>
                       </div>
                       <span className="text-[10px] font-mono text-slate-400">#PREVIEW</span>
                    </div>
 
-                   {/* Content of Preview */}
                    <div className="p-5 flex-1 space-y-5">
                       <div className="space-y-1">
                         <div className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Khách hàng / Đơn vị</div>
@@ -598,47 +606,11 @@ export const RepairsPage: React.FC = () => {
                           {formData.status || RepairStatus.RECEIVED}
                         </span>
                       </div>
-
-                      <div className="pt-4 border-t border-slate-100">
-                         {formData.serialNumber ? (
-                           <div className="inline-block px-2 py-1 bg-slate-100 rounded-md font-mono text-[10px] font-bold text-slate-500 border border-slate-200">
-                             SN: {formData.serialNumber}
-                           </div>
-                         ) : (
-                           <div className="text-[10px] text-red-400 italic font-medium flex items-center gap-1">
-                             <AlertCircle size={12} /> Thiếu Số Serial
-                           </div>
-                         )}
-                      </div>
-
-                      {formData.status === RepairStatus.RETURNED && (
-                        <div className="mt-4 p-3 bg-green-50 rounded-xl border border-green-100 space-y-2">
-                          <div className="flex items-center justify-between">
-                            <span className="text-[10px] font-bold text-green-700 uppercase">Xuất kho</span>
-                            <span className="text-[10px] font-bold text-green-600">{formData.returnDate}</span>
-                          </div>
-                          {formData.trackingNumber && (
-                            <div className="flex items-center gap-1 text-[10px] font-bold text-slate-600">
-                              <Truck size={12} /> {formData.shippingMethod}: {formData.trackingNumber}
-                            </div>
-                          )}
-                        </div>
-                      )}
                    </div>
 
-                   {/* Footer of Preview */}
-                   <div className="p-3 bg-slate-50 border-t border-slate-100 text-center">
-                      <div className="text-[9px] text-slate-400 font-medium">Phiếu hiển thị trên hệ thống</div>
+                   <div className="p-3 bg-slate-50 border-t border-slate-100 text-center text-[9px] text-slate-400 font-medium">
+                      Dữ liệu sẽ hiển thị trên bảng quản lý
                    </div>
-                </div>
-
-                {/* Quick Helper */}
-                <div className="mt-auto space-y-2">
-                  <div className="p-3 bg-amber-50 rounded-xl border border-amber-100">
-                    <p className="text-[10px] text-amber-700 font-bold leading-normal">
-                      Vui lòng rà soát lại thông tin khách hàng và số Serial trước khi lưu để đảm bảo dữ liệu thống nhất.
-                    </p>
-                  </div>
                 </div>
               </div>
             </div>
@@ -646,12 +618,12 @@ export const RepairsPage: React.FC = () => {
             <div className="px-6 py-5 bg-slate-50 border-t border-slate-200 flex justify-between gap-3 rounded-b-2xl sticky bottom-0 z-10">
               {editingId ? (
                 <button onClick={(e) => handleDelete(e, editingId)} className="px-5 py-2.5 text-red-600 hover:bg-red-50 rounded-xl transition-all font-bold text-sm flex items-center gap-2">
-                  <Trash2 size={18} /> Xóa phiếu này
+                  <Trash2 size={18} /> Xóa phiếu
                 </button>
               ) : (<div></div>)}
               <div className="flex gap-3">
                 <button onClick={closeModal} className="px-6 py-2.5 text-slate-600 hover:bg-slate-200 rounded-xl transition-all font-bold text-sm">Hủy bỏ</button>
-                <button onClick={handleSave} className="px-8 py-2.5 bg-blue-600 text-white hover:bg-blue-700 rounded-xl transition-all font-bold text-sm shadow-xl shadow-blue-600/20 active:scale-95">
+                <button onClick={handleSave} className="px-8 py-2.5 bg-blue-600 text-white hover:bg-blue-700 rounded-xl transition-all font-bold text-sm shadow-xl active:scale-95">
                   {editingId ? 'Cập nhật thay đổi' : 'Lưu và Xuất bản'}
                 </button>
               </div>

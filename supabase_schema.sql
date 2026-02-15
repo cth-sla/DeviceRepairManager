@@ -1,4 +1,3 @@
-
 -- BẠN HÃY COPY TOÀN BỘ NỘI DUNG DƯỚI ĐÂY VÀ CHẠY TRONG SQL EDITOR CỦA SUPABASE --
 
 -- 1. Bật extension
@@ -23,6 +22,7 @@ create table if not exists public.customers (
 );
 
 -- 4. Tạo hoặc Cập nhật bảng Phiếu Sửa chữa (Tickets)
+-- Bổ sung tracking_number và shipping_method
 create table if not exists public.tickets (
     id uuid primary key,
     customer_id uuid references public.customers(id),
@@ -34,11 +34,13 @@ create table if not exists public.tickets (
     return_date text,
     return_note text,
     shipping_method text,
+    tracking_number text,
     created_at bigint,
     updated_at bigint
 );
 
 -- 5. Tạo hoặc Cập nhật bảng Phiếu Bảo hành (Warranties)
+-- Bổ sung shipping_method và tracking_number
 create table if not exists public.warranties (
     id uuid primary key,
     organization_id uuid references public.organizations(id),
@@ -50,12 +52,13 @@ create table if not exists public.warranties (
     return_date text,
     cost numeric,
     note text,
+    shipping_method text,
+    tracking_number text,
     created_at bigint,
     updated_at bigint
 );
 
--- 6. CẬP NHẬT RÀNG BUỘC CASCADE (Để xóa được cha thì con tự động mất)
--- Thao tác này an toàn ngay cả khi bảng đã có dữ liệu
+-- 6. CẬP NHẬT RÀNG BUỘC CASCADE
 do $$
 begin
     -- Cập nhật bảng customers
@@ -80,7 +83,7 @@ alter table public.customers enable row level security;
 alter table public.tickets enable row level security;
 alter table public.warranties enable row level security;
 
--- Xóa chính sách cũ nếu tồn tại để tránh lỗi 42710
+-- Xóa chính sách cũ nếu tồn tại
 drop policy if exists "Enable all access for authenticated users" on public.organizations;
 drop policy if exists "Enable all access for authenticated users" on public.customers;
 drop policy if exists "Enable all access for authenticated users" on public.tickets;
