@@ -17,7 +17,7 @@ export const RepairsPage: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
   
   const [currentPage, setCurrentPage] = useState(1);
-  const ITEMS_PER_PAGE = 10;
+  const ITEMS_PER_PAGE = 15;
   
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [historyTitle, setHistoryTitle] = useState('');
@@ -113,6 +113,7 @@ export const RepairsPage: React.FC = () => {
         fullName: newCustomerData.fullName!,
         organizationId: newCustomerData.organizationId!,
         phone: newCustomerData.phone || '',
+        // Fixed: Use newCustomerData.address instead of undefined variable 'e'
         address: newCustomerData.address || '',
         createdAt: Date.now()
       };

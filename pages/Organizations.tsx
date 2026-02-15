@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Organization } from '../types';
 import { StorageService } from '../services/storage';
-import { Plus, Search, MapPin, Building2, Trash2, Edit2, X, Loader2, AlertTriangle } from 'lucide-react';
+import { Plus, Search, MapPin, Building2, Trash2, Edit2, X, Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
 
 export const OrganizationsPage: React.FC = () => {
   const [organizations, setOrganizations] = useState<Organization[]>([]);
@@ -9,6 +9,10 @@ export const OrganizationsPage: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   
+  // Pagination state: 15 items per page as requested
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 15;
+
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState<Partial<Organization>>({
     name: '',
@@ -24,7 +28,6 @@ export const OrganizationsPage: React.FC = () => {
       console.error("Failed to fetch organizations:", err);
       setOrganizations([]);
     } finally {
-      // Đảm bảo trạng thái loading được tắt kể cả khi có lỗi để bảng (hoặc thông báo trống) hiện ra
       setIsLoading(false);
     }
   };
@@ -32,6 +35,10 @@ export const OrganizationsPage: React.FC = () => {
   useEffect(() => {
     fetchData();
   }, []);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm]);
 
   const handleSave = async () => {
     if (!formData.name?.trim()) return alert('Vui lòng nhập tên đơn vị');
@@ -92,10 +99,14 @@ export const OrganizationsPage: React.FC = () => {
     setFormData({ name: '', address: '' });
   };
 
-  // Lọc an toàn, tránh lỗi crash nếu name là null/undefined
   const filteredOrgs = organizations.filter(o => 
     (o.name || '').toLowerCase().includes((searchTerm || '').toLowerCase())
   );
+
+  // Pagination logic
+  const totalPages = Math.ceil(filteredOrgs.length / ITEMS_PER_PAGE);
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+  const paginatedOrgs = filteredOrgs.slice(startIndex, startIndex + ITEMS_PER_PAGE);
 
   return (
     <div className="space-y-6">
@@ -113,7 +124,7 @@ export const OrganizationsPage: React.FC = () => {
         </button>
       </div>
 
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+      <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col">
         <div className="p-4 border-b border-slate-200 bg-slate-50/50">
           <div className="relative max-w-md">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
@@ -143,7 +154,7 @@ export const OrganizationsPage: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {filteredOrgs.length === 0 ? (
+                {paginatedOrgs.length === 0 ? (
                   <tr>
                     <td colSpan={3} className="px-6 py-20 text-center text-slate-400">
                       <div className="flex flex-col items-center gap-2">
@@ -153,7 +164,7 @@ export const OrganizationsPage: React.FC = () => {
                     </td>
                   </tr>
                 ) : (
-                  filteredOrgs.map((org) => (
+                  paginatedOrgs.map((org) => (
                     <tr key={org.id} className="hover:bg-blue-50/30 transition-colors group">
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
@@ -194,6 +205,47 @@ export const OrganizationsPage: React.FC = () => {
             </table>
           )}
         </div>
+
+        {filteredOrgs.length > 0 && (
+          <div className="px-6 py-4 border-t border-slate-200 bg-slate-50 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="text-xs font-medium text-slate-500">
+              Hiển thị <span className="font-bold text-slate-900">{startIndex + 1}</span>-
+              <span className="font-bold text-slate-900">{Math.min(startIndex + ITEMS_PER_PAGE, filteredOrgs.length)}</span> / 
+              <span className="font-bold text-slate-900">{filteredOrgs.length}</span> đơn vị
+            </div>
+            <div className="flex items-center gap-2">
+              <button 
+                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))} 
+                disabled={currentPage === 1} 
+                className="p-2 border border-slate-300 rounded-lg hover:bg-white disabled:opacity-50 disabled:cursor-not-allowed bg-white text-slate-600 transition-colors shadow-sm"
+              >
+                <ChevronLeft size={16} />
+              </button>
+              <div className="flex gap-1">
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                  <button
+                    key={page}
+                    onClick={() => setCurrentPage(page)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                      currentPage === page 
+                      ? 'bg-blue-600 text-white shadow-md shadow-blue-500/20' 
+                      : 'bg-white border border-slate-300 text-slate-600 hover:bg-slate-50'
+                    }`}
+                  >
+                    {page}
+                  </button>
+                ))}
+              </div>
+              <button 
+                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))} 
+                disabled={currentPage === totalPages || totalPages === 0} 
+                className="p-2 border border-slate-300 rounded-lg hover:bg-white disabled:opacity-50 disabled:cursor-not-allowed bg-white text-slate-600 transition-colors shadow-sm"
+              >
+                <ChevronRight size={16} />
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Modal */}
