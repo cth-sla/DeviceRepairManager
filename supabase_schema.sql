@@ -63,6 +63,17 @@ create table if not exists public.warranties (
     updated_at bigint
 );
 
+-- 6. Tạo hoặc Cập nhật bảng Thiết bị (Devices)
+create table if not exists public.devices (
+    id uuid primary key,
+    name text not null,
+    serial_number text,
+    device_type text,
+    quantity integer default 1,
+    start_time text,
+    created_at bigint
+);
+
 -- Đảm bảo có cột mới trong warranties
 do $$ 
 begin 
@@ -74,20 +85,23 @@ begin
     end if;
 end $$;
 
--- 6. THIẾT LẬP LẠI QUYỀN TRUY CẬP (RLS)
+-- 7. THIẾT LẬP LẠI QUYỀN TRUY CẬP (RLS)
 alter table public.organizations enable row level security;
 alter table public.customers enable row level security;
 alter table public.tickets enable row level security;
 alter table public.warranties enable row level security;
+alter table public.devices enable row level security;
 
 -- Xóa chính sách cũ để tránh trùng lặp
 drop policy if exists "Enable all access for authenticated users" on public.organizations;
 drop policy if exists "Enable all access for authenticated users" on public.customers;
 drop policy if exists "Enable all access for authenticated users" on public.tickets;
 drop policy if exists "Enable all access for authenticated users" on public.warranties;
+drop policy if exists "Enable all access for authenticated users" on public.devices;
 
 -- Tạo chính sách mới cho phép truy cập toàn quyền khi đã đăng nhập
 create policy "Enable all access for authenticated users" on public.organizations for all using (true);
 create policy "Enable all access for authenticated users" on public.customers for all using (true);
 create policy "Enable all access for authenticated users" on public.tickets for all using (true);
 create policy "Enable all access for authenticated users" on public.warranties for all using (true);
+create policy "Enable all access for authenticated users" on public.devices for all using (true);

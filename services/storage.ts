@@ -1,12 +1,13 @@
 import { supabase, isSupabaseConfigured } from './client';
-import { Customer, RepairTicket, Organization, WarrantyTicket } from '../types';
+import { Customer, RepairTicket, Organization, WarrantyTicket, Device } from '../types';
 
 // --- LOCAL STORAGE IMPLEMENTATION (FALLBACK) ---
 const LS_KEYS = {
   ORGS: 'device_mgr_orgs',
   CUSTOMERS: 'device_mgr_customers',
   TICKETS: 'device_mgr_tickets',
-  WARRANTIES: 'device_mgr_warranties'
+  WARRANTIES: 'device_mgr_warranties',
+  DEVICES: 'device_mgr_devices'
 };
 
 const localDB = {
@@ -284,6 +285,61 @@ export const StorageService = {
   deleteWarrantyTicket: async (id: string) => {
     if (!isSupabaseConfigured) return localDB.delete(LS_KEYS.WARRANTIES, id);
     const { error } = await supabase.from('warranties').delete().eq('id', id);
+    if (error) throw error;
+  },
+
+  // --- DEVICES ---
+  getDevices: async (): Promise<Device[]> => {
+    try {
+      if (!isSupabaseConfigured) return localDB.get<Device>(LS_KEYS.DEVICES);
+      const { data, error } = await supabase.from('devices').select('*').order('created_at', { ascending: false });
+      if (error) throw error;
+      return data?.map((row: any) => ({
+        id: row.id,
+        name: row.name,
+        serialNumber: row.serial_number || row.serialNumber,
+        deviceType: row.device_type || row.deviceType,
+        quantity: row.quantity || 1,
+        startTime: row.start_time || row.startTime || '',
+        createdAt: row.created_at || row.createdAt || Date.now()
+      })) || [];
+    } catch (e) {
+      console.error('Error fetching devices:', e);
+      return [];
+    }
+  },
+
+  addDevice: async (d: Device) => {
+    if (!isSupabaseConfigured) return localDB.add(LS_KEYS.DEVICES, d);
+    const dbRow = {
+      id: d.id,
+      name: d.name,
+      serial_number: d.serialNumber,
+      device_type: d.deviceType,
+      quantity: d.quantity,
+      start_time: d.startTime,
+      created_at: d.createdAt
+    };
+    const { error } = await supabase.from('devices').insert([dbRow]);
+    if (error) throw error;
+  },
+
+  updateDevice: async (d: Device) => {
+    if (!isSupabaseConfigured) return localDB.update(LS_KEYS.DEVICES, d);
+    const dbRow = {
+      name: d.name,
+      serial_number: d.serialNumber,
+      device_type: d.deviceType,
+      quantity: d.quantity,
+      start_time: d.startTime
+    };
+    const { error } = await supabase.from('devices').update(dbRow).eq('id', d.id);
+    if (error) throw error;
+  },
+
+  deleteDevice: async (id: string) => {
+    if (!isSupabaseConfigured) return localDB.delete(LS_KEYS.DEVICES, id);
+    const { error } = await supabase.from('devices').delete().eq('id', id);
     if (error) throw error;
   }
 };

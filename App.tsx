@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { Layout } from './components/Layout';
 import { DashboardPage } from './pages/Dashboard';
 import { RepairsPage } from './pages/Repairs';
+import { DevicesPage } from './pages/Devices';
 import { CustomersPage } from './pages/Customers';
 import { OrganizationsPage } from './pages/Organizations';
 import { WarrantyPage } from './pages/Warranty';
@@ -70,6 +71,12 @@ const AppRoutes: React.FC = () => {
       <Route path="/repairs" element={
         <ProtectedRoute>
           <RepairsPage />
+        </ProtectedRoute>
+      } />
+      
+      <Route path="/devices" element={
+        <ProtectedRoute>
+          <DevicesPage />
         </ProtectedRoute>
       } />
       

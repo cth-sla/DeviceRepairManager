@@ -3,8 +3,21 @@ export enum DeviceType {
   MIC = 'Mic',
   CAMERA = 'Camera',
   SOURCE = 'Nguồn',
-  CONTROL = 'Điều khiển',
+  SWITCH = 'Switch',
+  FIREWALL = 'Firewall',
+  ROUTER = 'Router',
+  MCU = 'MCU',
   OTHER = 'Khác'
+}
+
+export interface Device {
+  id: string;
+  name: string;
+  serialNumber: string;
+  deviceType: DeviceType;
+  quantity: number;
+  startTime: string;
+  createdAt: number;
 }
 
 export enum ShippingMethod {

@@ -1,6 +1,6 @@
 import React from 'react';
 import { DeviceType } from '../types';
-import { Cpu, Mic, Video, Zap, Tablet, Box } from 'lucide-react';
+import { Cpu, Mic, Video, Zap, Tablet, Box, Network, Shield, Router, HardDrive } from 'lucide-react';
 
 interface DeviceIconProps {
   type: string;
@@ -24,8 +24,17 @@ export const DeviceIcon: React.FC<DeviceIconProps> = ({ type, className, size = 
     case DeviceType.SOURCE:
       Icon = Zap;
       break;
-    case DeviceType.CONTROL:
-      Icon = Tablet;
+    case DeviceType.SWITCH:
+      Icon = Network;
+      break;
+    case DeviceType.FIREWALL:
+      Icon = Shield;
+      break;
+    case DeviceType.ROUTER:
+      Icon = Router;
+      break;
+    case DeviceType.MCU:
+      Icon = HardDrive;
       break;
     case DeviceType.OTHER:
       Icon = Box;
