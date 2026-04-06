@@ -301,6 +301,7 @@ export const StorageService = {
         deviceType: row.device_type || row.deviceType,
         quantity: row.quantity || 1,
         startTime: row.start_time || row.startTime || '',
+        organizationId: row.organization_id || row.organizationId,
         createdAt: row.created_at || row.createdAt || Date.now()
       })) || [];
     } catch (e) {
@@ -318,6 +319,7 @@ export const StorageService = {
       device_type: d.deviceType,
       quantity: d.quantity,
       start_time: d.startTime,
+      organization_id: d.organizationId,
       created_at: d.createdAt
     };
     const { error } = await supabase.from('devices').insert([dbRow]);
@@ -331,7 +333,8 @@ export const StorageService = {
       serial_number: d.serialNumber,
       device_type: d.deviceType,
       quantity: d.quantity,
-      start_time: d.startTime
+      start_time: d.startTime,
+      organization_id: d.organizationId
     };
     const { error } = await supabase.from('devices').update(dbRow).eq('id', d.id);
     if (error) throw error;

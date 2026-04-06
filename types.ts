@@ -17,6 +17,7 @@ export interface Device {
   deviceType: DeviceType;
   quantity: number;
   startTime: string;
+  organizationId?: string;
   createdAt: number;
 }
 

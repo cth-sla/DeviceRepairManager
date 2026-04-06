@@ -71,6 +71,7 @@ create table if not exists public.devices (
     device_type text,
     quantity integer default 1,
     start_time text,
+    organization_id uuid references public.organizations(id) on delete set null,
     created_at bigint
 );
 

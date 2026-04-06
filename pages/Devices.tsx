@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Search, FileEdit, Trash2, Download, Upload, Package, Filter, X, Save } from 'lucide-react';
 import { StorageService } from '../services/storage';
-import { Device, DeviceType } from '../types';
+import { Device, DeviceType, Organization } from '../types';
 import * as XLSX from 'xlsx';
 
 export const DevicesPage: React.FC = () => {
   const [devices, setDevices] = useState<Device[]>([]);
+  const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState<string>('all');
@@ -20,18 +21,28 @@ export const DevicesPage: React.FC = () => {
     serialNumber: '',
     deviceType: DeviceType.CODEC,
     quantity: 1,
-    startTime: new Date().toISOString().split('T')[0]
+    startTime: new Date().toISOString().split('T')[0],
+    organizationId: ''
   });
 
   useEffect(() => {
-    loadDevices();
+    loadData();
   }, []);
 
-  const loadDevices = async () => {
+  const loadData = async () => {
     setLoading(true);
+    const [devicesData, orgsData] = await Promise.all([
+      StorageService.getDevices(),
+      StorageService.getOrganizations()
+    ]);
+    setDevices(devicesData);
+    setOrganizations(orgsData);
+    setLoading(false);
+  };
+
+  const loadDevices = async () => {
     const data = await StorageService.getDevices();
     setDevices(data);
-    setLoading(false);
   };
 
   const handleSave = async (e: React.FormEvent) => {
@@ -78,7 +89,8 @@ export const DevicesPage: React.FC = () => {
       serialNumber: '',
       deviceType: DeviceType.CODEC,
       quantity: 1,
-      startTime: new Date().toISOString().split('T')[0]
+      startTime: new Date().toISOString().split('T')[0],
+      organizationId: ''
     });
   };
 
@@ -95,19 +107,24 @@ export const DevicesPage: React.FC = () => {
       serialNumber: device.serialNumber,
       deviceType: device.deviceType,
       quantity: device.quantity,
-      startTime: device.startTime
+      startTime: device.startTime,
+      organizationId: device.organizationId || ''
     });
     setIsModalOpen(true);
   };
 
   const handleExportExcel = () => {
-    const exportData = devices.map(d => ({
-      'Tên thiết bị': d.name,
-      'Serial': d.serialNumber,
-      'Loại thiết bị': d.deviceType,
-      'Số lượng': d.quantity,
-      'Thời gian bắt đầu': d.startTime
-    }));
+    const exportData = devices.map(d => {
+      const org = organizations.find(o => o.id === d.organizationId);
+      return {
+        'Tên thiết bị': d.name,
+        'Serial': d.serialNumber,
+        'Loại thiết bị': d.deviceType,
+        'Số lượng': d.quantity,
+        'Thời gian bắt đầu': d.startTime,
+        'Đơn vị': org?.name || ''
+      };
+    });
 
     const ws = XLSX.utils.json_to_sheet(exportData);
     const wb = XLSX.utils.book_new();
@@ -128,15 +145,21 @@ export const DevicesPage: React.FC = () => {
         const ws = wb.Sheets[wsname];
         const data = XLSX.utils.sheet_to_json(ws) as any[];
 
-        const newDevices: Device[] = data.map(item => ({
-          id: crypto.randomUUID(),
-          name: item['Tên thiết bị'] || item['name'] || 'Không tên',
-          serialNumber: item['Serial'] || item['serialNumber'] || '',
-          deviceType: (item['Loại thiết bị'] || item['deviceType'] || DeviceType.OTHER) as DeviceType,
-          quantity: Number(item['Số lượng'] || item['quantity'] || 1),
-          startTime: item['Thời gian bắt đầu'] || item['startTime'] || new Date().toISOString().split('T')[0],
-          createdAt: Date.now()
-        }));
+        const newDevices: Device[] = data.map(item => {
+          const orgName = item['Đơn vị'] || item['organizationName'];
+          const org = organizations.find(o => o.name === orgName);
+          
+          return {
+            id: crypto.randomUUID(),
+            name: item['Tên thiết bị'] || item['name'] || 'Không tên',
+            serialNumber: item['Serial'] || item['serialNumber'] || '',
+            deviceType: (item['Loại thiết bị'] || item['deviceType'] || DeviceType.OTHER) as DeviceType,
+            quantity: Number(item['Số lượng'] || item['quantity'] || 1),
+            startTime: item['Thời gian bắt đầu'] || item['startTime'] || new Date().toISOString().split('T')[0],
+            organizationId: org?.id,
+            createdAt: Date.now()
+          };
+        });
 
         for (const device of newDevices) {
           await StorageService.addDevice(device);
@@ -246,6 +269,7 @@ export const DevicesPage: React.FC = () => {
                 <th className="px-6 py-4 text-sm font-semibold text-slate-600">Loại</th>
                 <th className="px-6 py-4 text-sm font-semibold text-slate-600">Số lượng</th>
                 <th className="px-6 py-4 text-sm font-semibold text-slate-600">Bắt đầu</th>
+                <th className="px-6 py-4 text-sm font-semibold text-slate-600">Đơn vị</th>
                 <th className="px-6 py-4 text-sm font-semibold text-slate-600 text-right">Thao tác</th>
               </tr>
             </thead>
@@ -289,6 +313,11 @@ export const DevicesPage: React.FC = () => {
                     </td>
                     <td className="px-6 py-4 text-slate-600">
                       {device.startTime}
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className="text-slate-600 font-medium">
+                        {organizations.find(o => o.id === device.organizationId)?.name || '---'}
+                      </span>
                     </td>
                     <td className="px-6 py-4 text-right">
                       <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -434,6 +463,19 @@ export const DevicesPage: React.FC = () => {
                   value={formData.startTime}
                   onChange={(e) => setFormData({...formData, startTime: e.target.value})}
                 />
+              </div>
+              <div className="space-y-1">
+                <label className="text-sm font-medium text-slate-700">Đơn vị cấp</label>
+                <select 
+                  className="w-full px-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                  value={formData.organizationId}
+                  onChange={(e) => setFormData({...formData, organizationId: e.target.value})}
+                >
+                  <option value="">-- Chọn đơn vị --</option>
+                  {organizations.map(org => (
+                    <option key={org.id} value={org.id}>{org.name}</option>
+                  ))}
+                </select>
               </div>
               <div className="flex gap-3 pt-4">
                 <button 
