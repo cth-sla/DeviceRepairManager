@@ -451,7 +451,7 @@ export const DevicesPage: React.FC = () => {
                     min="1"
                     className="w-full px-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all"
                     value={formData.quantity}
-                    onChange={(e) => setFormData({...formData, quantity: parseInt(e.target.value)})}
+                    onChange={(e) => setFormData({...formData, quantity: Number(e.target.value) || 1})}
                   />
                 </div>
               </div>

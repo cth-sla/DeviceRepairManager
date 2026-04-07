@@ -112,25 +112,31 @@ export const StorageService = {
     const dbRow = {
       id: c.id,
       full_name: c.fullName,
-      organization_id: c.organizationId,
+      organization_id: c.organizationId || null,
       phone: c.phone || null,
       address: c.address || null,
       created_at: c.createdAt
     };
     const { error } = await supabase.from('customers').insert([dbRow]);
-    if (error) throw error;
+    if (error) {
+      console.error('Supabase Add Customer Error:', error);
+      throw error;
+    }
   },
 
   updateCustomer: async (c: Customer) => {
     if (!isSupabaseConfigured) return localDB.update(LS_KEYS.CUSTOMERS, c);
     const dbRow = {
       full_name: c.fullName,
-      organization_id: c.organizationId,
+      organization_id: c.organizationId || null,
       phone: c.phone || null,
       address: c.address || null
     };
     const { error } = await supabase.from('customers').update(dbRow).eq('id', c.id);
-    if (error) throw error;
+    if (error) {
+      console.error('Supabase Update Customer Error:', error);
+      throw error;
+    }
   },
 
   deleteCustomer: async (id: string) => {
@@ -170,7 +176,7 @@ export const StorageService = {
     if (!isSupabaseConfigured) return localDB.add(LS_KEYS.TICKETS, t);
     const dbRow = {
       id: t.id,
-      customer_id: t.customerId,
+      customer_id: t.customerId || null,
       device_type: t.deviceType,
       serial_number: t.serialNumber || null,
       device_condition: t.deviceCondition || null,
@@ -184,13 +190,16 @@ export const StorageService = {
       updated_at: t.updatedAt
     };
     const { error } = await supabase.from('tickets').insert([dbRow]);
-    if (error) throw error;
+    if (error) {
+      console.error('Supabase Add Ticket Error:', error);
+      throw error;
+    }
   },
 
   updateTicket: async (t: RepairTicket) => {
     if (!isSupabaseConfigured) return localDB.update(LS_KEYS.TICKETS, t);
     const dbRow = {
-      customer_id: t.customerId,
+      customer_id: t.customerId || null,
       device_type: t.deviceType,
       serial_number: t.serialNumber || null,
       device_condition: t.deviceCondition || null,
@@ -203,7 +212,10 @@ export const StorageService = {
       updated_at: t.updatedAt
     };
     const { error } = await supabase.from('tickets').update(dbRow).eq('id', t.id);
-    if (error) throw error;
+    if (error) {
+      console.error('Supabase Update Ticket Error:', error);
+      throw error;
+    }
   },
 
   deleteTicket: async (id: string) => {
@@ -244,7 +256,7 @@ export const StorageService = {
     if (!isSupabaseConfigured) return localDB.add(LS_KEYS.WARRANTIES, t);
     const dbRow = {
       id: t.id,
-      organization_id: t.organizationId,
+      organization_id: t.organizationId || null,
       device_type: t.deviceType,
       serial_number: t.serialNumber || null,
       description: t.description || null,
@@ -259,13 +271,16 @@ export const StorageService = {
       updated_at: t.updatedAt
     };
     const { error } = await supabase.from('warranties').insert([dbRow]);
-    if (error) throw error;
+    if (error) {
+      console.error('Supabase Add Warranty Error:', error);
+      throw error;
+    }
   },
 
   updateWarrantyTicket: async (t: WarrantyTicket) => {
     if (!isSupabaseConfigured) return localDB.update(LS_KEYS.WARRANTIES, t);
     const dbRow = {
-      organization_id: t.organizationId,
+      organization_id: t.organizationId || null,
       device_type: t.deviceType,
       serial_number: t.serialNumber || null,
       description: t.description || null,
@@ -279,7 +294,10 @@ export const StorageService = {
       updated_at: t.updatedAt
     };
     const { error } = await supabase.from('warranties').update(dbRow).eq('id', t.id);
-    if (error) throw error;
+    if (error) {
+      console.error('Supabase Update Warranty Error:', error);
+      throw error;
+    }
   },
 
   deleteWarrantyTicket: async (id: string) => {
@@ -315,29 +333,35 @@ export const StorageService = {
     const dbRow = {
       id: d.id,
       name: d.name,
-      serial_number: d.serialNumber,
+      serial_number: d.serialNumber || null,
       device_type: d.deviceType,
       quantity: d.quantity,
       start_time: d.startTime,
-      organization_id: d.organizationId,
+      organization_id: d.organizationId || null,
       created_at: d.createdAt
     };
     const { error } = await supabase.from('devices').insert([dbRow]);
-    if (error) throw error;
+    if (error) {
+      console.error('Supabase Add Device Error:', error);
+      throw error;
+    }
   },
 
   updateDevice: async (d: Device) => {
     if (!isSupabaseConfigured) return localDB.update(LS_KEYS.DEVICES, d);
     const dbRow = {
       name: d.name,
-      serial_number: d.serialNumber,
+      serial_number: d.serialNumber || null,
       device_type: d.deviceType,
       quantity: d.quantity,
       start_time: d.startTime,
-      organization_id: d.organizationId
+      organization_id: d.organizationId || null
     };
     const { error } = await supabase.from('devices').update(dbRow).eq('id', d.id);
-    if (error) throw error;
+    if (error) {
+      console.error('Supabase Update Device Error:', error);
+      throw error;
+    }
   },
 
   deleteDevice: async (id: string) => {
