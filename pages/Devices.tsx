@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Plus, Search, FileEdit, Trash2, Download, Upload, Package, Filter, X, Save } from 'lucide-react';
 import { StorageService } from '../services/storage';
 import { Device, DeviceType, Organization } from '../types';
+import { DeviceIcon } from '../components/DeviceIcon';
 import * as XLSX from 'xlsx';
 
 export const DevicesPage: React.FC = () => {
@@ -13,6 +14,7 @@ export const DevicesPage: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingDevice, setEditingDevice] = useState<Device | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
+  const [showOverview, setShowOverview] = useState(true);
   const ITEMS_PER_PAGE = 30;
   
   // Form state
@@ -198,6 +200,21 @@ export const DevicesPage: React.FC = () => {
     }
   }, [totalPages, currentPage]);
 
+  // Thống kê theo loại thiết bị
+  const typeStats = Object.values(DeviceType).map(type => {
+    const typeDevices = devices.filter(d => d.deviceType === type);
+    const uniqueCount = typeDevices.length;
+    const totalQuantity = typeDevices.reduce((sum, d) => sum + (d.quantity || 0), 0);
+    return {
+      type,
+      uniqueCount,
+      totalQuantity,
+    };
+  });
+
+  const totalActualDevices = devices.reduce((sum, d) => sum + (d.quantity || 0), 0);
+  const totalUniqueDevices = devices.length;
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -227,6 +244,108 @@ export const DevicesPage: React.FC = () => {
           </button>
         </div>
       </div>
+
+      {/* Báo cáo tổng quan số liệu */}
+      {showOverview && (
+        <div className="bg-slate-50 border border-slate-200 rounded-2xl p-5 space-y-5 animate-in fade-in slide-in-from-top-4 duration-300">
+          <div className="flex items-center justify-between">
+            <h2 className="text-base font-bold text-slate-800 tracking-tight flex items-center gap-2">
+              <Package size={18} className="text-blue-600" />
+              Báo cáo tổng hợp số liệu thiết bị
+            </h2>
+            <button 
+              onClick={() => setShowOverview(false)}
+              className="text-xs text-slate-400 hover:text-slate-600 transition-colors uppercase font-bold tracking-wider"
+            >
+              Thu gọn ✕
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+            {/* Thống kê nhanh */}
+            <div className="lg:col-span-1 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-4">
+              <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between">
+                <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Tổng sản phẩm cấu hình</span>
+                <div className="flex items-baseline gap-2 mt-4">
+                  <span className="text-3xl font-extrabold text-slate-800">{totalUniqueDevices}</span>
+                  <span className="text-xs text-slate-400 font-medium">dòng máy / mã</span>
+                </div>
+              </div>
+
+              <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between">
+                <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Tổng số lượng thực tế</span>
+                <div className="flex items-baseline gap-2 mt-4">
+                  <span className="text-3xl font-extrabold text-blue-600">{totalActualDevices}</span>
+                  <span className="text-xs text-slate-400 font-medium">đơn vị / chiếc</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Bảng biểu tổng hợp số liệu theo loại */}
+            <div className="lg:col-span-2 bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex flex-col justify-between">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs border-collapse">
+                  <thead>
+                    <tr className="bg-slate-50 border-b border-slate-200">
+                      <th className="px-4 py-2.5 font-bold text-slate-500 uppercase tracking-wider">Loại thiết bị</th>
+                      <th className="px-4 py-2.5 font-bold text-slate-500 uppercase tracking-wider text-center">Số chủng loại</th>
+                      <th className="px-4 py-2.5 font-bold text-slate-500 uppercase tracking-wider text-right">Tổng số lượng</th>
+                      <th className="px-4 py-2.5 font-bold text-slate-500 uppercase tracking-wider">Tỷ trọng %</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {typeStats.map((stat) => {
+                      const percentage = totalActualDevices > 0 
+                        ? Math.round((stat.totalQuantity / totalActualDevices) * 100) 
+                        : 0;
+
+                      return (
+                        <tr key={stat.type} className="hover:bg-slate-50/50 transition-colors">
+                          <td className="px-4 py-2.5">
+                            <div className="flex items-center gap-2 font-bold text-slate-700">
+                              <span className="p-1 px-1.5 bg-slate-100 text-slate-600 rounded">
+                                <DeviceIcon type={stat.type} size={12} />
+                              </span>
+                              <span>{stat.type}</span>
+                            </div>
+                          </td>
+                          <td className="px-4 py-2.5 text-center text-slate-600 font-medium">{stat.uniqueCount}</td>
+                          <td className="px-4 py-2.5 text-right">
+                            <span className={`font-bold ${stat.totalQuantity > 0 ? 'text-slate-950' : 'text-slate-400'}`}>
+                              {stat.totalQuantity}
+                            </span>
+                          </td>
+                          <td className="px-4 py-2.5">
+                            <div className="flex items-center gap-3">
+                              <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden min-w-[60px]">
+                                <div 
+                                  className="h-full bg-blue-600 rounded-full transition-all duration-500" 
+                                  style={{ width: `${percentage}%` }}
+                                />
+                              </div>
+                              <span className="text-[10px] font-bold text-slate-400 min-w-[2rem] text-right">{percentage}%</span>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {!showOverview && (
+        <button 
+          onClick={() => setShowOverview(true)}
+          className="flex items-center gap-2 px-4 py-2 bg-slate-50 border border-slate-200 hover:bg-slate-100 rounded-xl transition-all font-bold text-xs text-slate-600"
+        >
+          <Package size={14} className="text-blue-600" />
+          <span>Xem tổng quan số liệu kết quả</span>
+        </button>
+      )}
 
       {/* Filters */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-slate-50 p-4 rounded-2xl border border-slate-200">
