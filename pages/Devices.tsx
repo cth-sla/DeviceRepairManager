@@ -420,24 +420,33 @@ export const DevicesPage: React.FC = () => {
               </div>
             </div>
 
-            {/* Crucial Section: Organization / Unit in USE */}
-            <div className="bg-slate-50 border border-slate-200/60 rounded-2xl p-5 space-y-3 relative overflow-hidden">
-              <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none">
-                <Landmark size={48} />
-              </div>
-              <div className="flex items-center gap-2">
-                <Landmark size={18} className="text-indigo-600" />
-                <span className="text-xs font-bold uppercase tracking-wide text-slate-400">Đơn vị đang sử dụng</span>
-              </div>
-              <div className="space-y-1.5 pl-7">
-                <div className="text-lg font-extrabold text-slate-900 leading-snug">
-                  {org?.name || '---'}
+            {/* Crucial Section: Organization / Unit in USE & QR Code */}
+            <div className="bg-slate-50 border border-slate-200/60 rounded-2xl p-5 relative overflow-hidden flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+              <div className="space-y-3 flex-1">
+                <div className="flex items-center gap-2">
+                  <Landmark size={18} className="text-indigo-600" />
+                  <span className="text-xs font-bold uppercase tracking-wide text-slate-400">Đơn vị đang sử dụng</span>
                 </div>
-                {org?.address && (
-                  <p className="text-xs text-slate-500 font-medium">
-                    📍 {org.address}
-                  </p>
-                )}
+                <div className="space-y-1.5 pl-7">
+                  <div className="text-lg font-extrabold text-slate-900 leading-snug">
+                    {org?.name || '---'}
+                  </div>
+                  {org?.address && (
+                    <p className="text-xs text-slate-500 font-medium">
+                      📍 {org.address}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {/* QR Code of the current device */}
+              <div className="bg-white p-2 rounded-xl shadow-md border border-slate-200/60 flex-shrink-0 self-center sm:self-auto">
+                <QRCodeCanvas
+                  value={`https://qltb.sonlasmart.com/devices?id=${device.id}`}
+                  size={96}
+                  level="Q"
+                  includeMargin={true}
+                />
               </div>
             </div>
 
