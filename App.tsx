@@ -35,6 +35,15 @@ const PublicRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   return <>{children}</>;
 };
 
+const DevicesRoute: React.FC = () => {
+  const { session } = useAuth();
+  
+  if (session) {
+    return <Layout><DevicesPage /></Layout>;
+  }
+  return <DevicesPage />;
+};
+
 const AppRoutes: React.FC = () => {
   return (
     <Routes>
@@ -74,7 +83,7 @@ const AppRoutes: React.FC = () => {
         </ProtectedRoute>
       } />
       
-      <Route path="/devices" element={<DevicesPage />} />
+      <Route path="/devices" element={<DevicesRoute />} />
       
       <Route path="/warranty" element={
         <ProtectedRoute>
