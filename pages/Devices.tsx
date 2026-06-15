@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Search, FileEdit, Trash2, Download, Upload, Package, Filter, X, Save } from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
+import { QRCodeCanvas } from 'qrcode.react';
+import { Plus, Search, FileEdit, Trash2, Download, Upload, Package, Filter, X, Save, QrCode, Eye, Printer, Copy, Check } from 'lucide-react';
 import { StorageService } from '../services/storage';
 import { Device, DeviceType, Organization } from '../types';
 import { DeviceIcon } from '../components/DeviceIcon';
@@ -15,6 +17,10 @@ export const DevicesPage: React.FC = () => {
   const [editingDevice, setEditingDevice] = useState<Device | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [showOverview, setShowOverview] = useState(true);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [selectedDeviceForQr, setSelectedDeviceForQr] = useState<Device | null>(null);
+  const [isQrModalOpen, setIsQrModalOpen] = useState(false);
+  const [copied, setCopied] = useState(false);
   const ITEMS_PER_PAGE = 30;
   
   // Form state
@@ -40,6 +46,133 @@ export const DevicesPage: React.FC = () => {
     setDevices(devicesData);
     setOrganizations(orgsData);
     setLoading(false);
+  };
+
+  useEffect(() => {
+    const id = searchParams.get('id');
+    if (id && devices.length > 0) {
+      const found = devices.find(d => d.id === id);
+      if (found) {
+        setSelectedDeviceForQr(found);
+        setIsQrModalOpen(true);
+      }
+    }
+  }, [searchParams, devices]);
+
+  const handlePrintQr = () => {
+    if (!selectedDeviceForQr) return;
+    const canvas = document.getElementById('qr-code-canvas') as HTMLCanvasElement;
+    if (!canvas) return;
+    const qrImageSrc = canvas.toDataURL('image/png');
+    
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      const org = organizations.find(o => o.id === selectedDeviceForQr.organizationId)?.name || '---';
+      printWindow.document.write(`
+        <html>
+          <head>
+            <title>In nhãn QR - ${selectedDeviceForQr.name}</title>
+            <style>
+              body {
+                font-family: 'Inter', system-ui, sans-serif;
+                margin: 0;
+                padding: 10px;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                text-align: center;
+                height: 100vh;
+              }
+              .label-card {
+                border: 2px dashed #cbd5e1;
+                padding: 20px;
+                border-radius: 12px;
+                max-width: 300px;
+                background: white;
+              }
+              .app-title {
+                font-size: 10px;
+                font-weight: 800;
+                text-transform: uppercase;
+                letter-spacing: 0.1em;
+                color: #64748b;
+                margin-bottom: 8px;
+              }
+              .device-name {
+                font-size: 18px;
+                font-weight: bold;
+                color: #0f172a;
+                margin-bottom: 2px;
+              }
+              .device-type {
+                font-size: 11px;
+                font-weight: bold;
+                color: #2563eb;
+                text-transform: uppercase;
+                margin-bottom: 12px;
+              }
+              .qr-image {
+                width: 155px;
+                height: 155px;
+                margin: 10px 0;
+              }
+              .device-serial {
+                font-family: monospace;
+                font-size: 13px;
+                background: #f1f5f9;
+                padding: 4px 8px;
+                border-radius: 4px;
+                color: #334155;
+                font-weight: bold;
+                display: inline-block;
+                margin-top: 5px;
+              }
+              .device-org {
+                font-size: 11px;
+                color: #475569;
+                margin-top: 8px;
+                font-weight: 500;
+              }
+              @media print {
+                body {
+                  height: auto;
+                }
+                .label-card {
+                  border: none;
+                  padding: 10px;
+                }
+              }
+            </style>
+          </head>
+          <body>
+            <div class="label-card">
+              <div class="app-title">DRM Device Asset Tag</div>
+              <div class="device-name">${selectedDeviceForQr.name}</div>
+              <div class="device-type">${selectedDeviceForQr.deviceType}</div>
+              <img class="qr-image" src="${qrImageSrc}" />
+              <div>
+                <span class="device-serial">SN: ${selectedDeviceForQr.serialNumber || 'N/A'}</span>
+              </div>
+              <div class="device-org">Đơn vị: ${org}</div>
+            </div>
+            <script>
+              window.onload = function() {
+                window.print();
+                setTimeout(function() { window.close(); }, 500);
+              };
+            </script>
+          </body>
+        </html>
+      `);
+      printWindow.document.close();
+    }
+  };
+
+  const handleCopyLink = (url: string) => {
+    navigator.clipboard.writeText(url);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   };
 
   const loadDevices = async () => {
@@ -439,15 +572,24 @@ export const DevicesPage: React.FC = () => {
                       </span>
                     </td>
                     <td className="px-6 py-4 text-right">
-                      <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <div className="flex justify-end gap-1.5 opacity-60 md:opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button 
+                          onClick={() => { setSelectedDeviceForQr(device); setIsQrModalOpen(true); }}
+                          title="Xem mã QR & Chi tiết"
+                          className="p-2 text-slate-400 hover:text-sky-600 hover:bg-sky-50 rounded-lg transition-all"
+                        >
+                          <QrCode size={18} />
+                        </button>
                         <button 
                           onClick={() => openEditModal(device)}
+                          title="Chỉnh sửa thiết bị"
                           className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
                         >
                           <FileEdit size={18} />
                         </button>
                         <button 
                           onClick={() => handleDelete(device.id)}
+                          title="Xóa thiết bị"
                           className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
                         >
                           <Trash2 size={18} />
@@ -613,6 +755,158 @@ export const DevicesPage: React.FC = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal QR Code & Chi tiết thiết bị */}
+      {isQrModalOpen && selectedDeviceForQr && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
+            <div className="flex items-center justify-between p-6 border-b border-slate-100 bg-slate-50">
+              <div className="flex items-center gap-2">
+                <QrCode className="text-blue-600 animate-pulse" size={24} />
+                <h2 className="text-xl font-bold text-slate-900">
+                  Mã QR & Chi tiết thiết bị
+                </h2>
+              </div>
+              <button 
+                onClick={() => {
+                  setIsQrModalOpen(false);
+                  setSelectedDeviceForQr(null);
+                  setSearchParams({}); // Clear query parameter if closing deep link
+                }} 
+                className="text-slate-400 hover:text-slate-600 transition-colors"
+                title="Đóng"
+              >
+                <X size={24} />
+              </button>
+            </div>
+            
+            <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+              {/* QR Code Container */}
+              <div className="flex flex-col items-center justify-center p-6 bg-slate-50 border border-slate-100 rounded-2xl">
+                <div className="bg-white p-4 rounded-xl shadow-md border border-slate-200/50">
+                  <QRCodeCanvas
+                    id="qr-code-canvas"
+                    value={`https://qltb.sonlasmart.com/devices?id=${selectedDeviceForQr.id}`}
+                    size={160}
+                    level="Q"
+                    includeMargin={true}
+                  />
+                </div>
+                
+                <p className="text-[10px] text-slate-500 mt-3 text-center uppercase tracking-wider font-bold">
+                  Quét bằng điện thoại để xem trực tiếp
+                </p>
+                
+                <div className="flex gap-2 w-full mt-4">
+                  <button
+                    onClick={() => {
+                      const canvas = document.getElementById('qr-code-canvas') as HTMLCanvasElement;
+                      if (canvas) {
+                        const url = canvas.toDataURL('image/png');
+                        const link = document.createElement('a');
+                        link.download = `QR_${selectedDeviceForQr.name}.png`;
+                        link.href = url;
+                        link.click();
+                      }
+                    }}
+                    className="flex-1 flex items-center justify-center gap-2 px-3 py-2 text-xs font-bold text-emerald-600 bg-emerald-50 border border-emerald-200 rounded-xl hover:bg-emerald-100 transition-all shadow-sm"
+                  >
+                    <Download size={14} />
+                    <span>Tải ảnh QR</span>
+                  </button>
+                  <button
+                    onClick={handlePrintQr}
+                    className="flex-1 flex items-center justify-center gap-2 px-3 py-2 text-xs font-bold text-blue-600 bg-blue-50 border border-blue-200 rounded-xl hover:bg-blue-100 transition-all shadow-sm"
+                  >
+                    <Printer size={14} />
+                    <span>In nhãn QR</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Device Details Info */}
+              <div className="space-y-4 text-left">
+                <div className="space-y-1">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Tên thiết bị</span>
+                  <div className="text-base font-bold text-slate-900 border-b border-slate-100 pb-1.5">{selectedDeviceForQr.name}</div>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Loại thiết bị</span>
+                    <div>
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-100 text-blue-800">
+                        {selectedDeviceForQr.deviceType}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="space-y-1">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Số lượng</span>
+                    <div className="text-sm font-bold text-slate-800">{selectedDeviceForQr.quantity} chiếc</div>
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Mã Serial / Model</span>
+                  <div>
+                    <code className="text-xs bg-slate-100 px-2 py-1 rounded text-slate-700 font-bold font-mono">
+                      {selectedDeviceForQr.serialNumber || 'N/A'}
+                    </code>
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Thời gian bắt đầu sử dụng</span>
+                  <div className="text-sm font-semibold text-slate-800">{selectedDeviceForQr.startTime}</div>
+                </div>
+
+                <div className="space-y-1">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Đơn vị sử dụng</span>
+                  <div className="text-sm font-semibold text-slate-800">
+                    {organizations.find(o => o.id === selectedDeviceForQr.organizationId)?.name || '---'}
+                  </div>
+                </div>
+
+                <div className="space-y-1 pt-2">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Đường dẫn quét (URL)</span>
+                  <div className="flex gap-1.5 mt-1">
+                    <input 
+                      readOnly
+                      type="text" 
+                      className="flex-1 px-3 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-xl text-slate-500 select-all outline-none"
+                      value={`https://qltb.sonlasmart.com/devices?id=${selectedDeviceForQr.id}`}
+                    />
+                    <button
+                      onClick={() => handleCopyLink(`https://qltb.sonlasmart.com/devices?id=${selectedDeviceForQr.id}`)}
+                      className={`px-3 py-1.5 rounded-xl border flex items-center justify-center transition-all ${
+                        copied 
+                          ? 'bg-green-50 border-green-200 text-green-600' 
+                          : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+                      }`}
+                      title="Copy URL"
+                    >
+                      {copied ? <Check size={14} /> : <Copy size={14} />}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex justify-end">
+              <button 
+                onClick={() => {
+                  setIsQrModalOpen(false);
+                  setSelectedDeviceForQr(null);
+                  setSearchParams({}); // Clear query parameter if closing deep link
+                }}
+                className="px-6 py-2.5 bg-blue-600 text-white hover:bg-blue-700 rounded-xl transition-all font-bold text-sm shadow-xl shadow-blue-500/10 active:scale-95"
+              >
+                Đóng lại
+              </button>
+            </div>
           </div>
         </div>
       )}
