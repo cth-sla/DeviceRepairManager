@@ -21,7 +21,7 @@ export const DevicesPage: React.FC = () => {
   const [selectedDeviceForQr, setSelectedDeviceForQr] = useState<Device | null>(null);
   const [isQrModalOpen, setIsQrModalOpen] = useState(false);
   const [copied, setCopied] = useState(false);
-  const ITEMS_PER_PAGE = 30;
+  const ITEMS_PER_PAGE = 10;
   
   // Form state
   const [formData, setFormData] = useState({
@@ -572,7 +572,7 @@ export const DevicesPage: React.FC = () => {
                       </span>
                     </td>
                     <td className="px-6 py-4 text-right">
-                      <div className="flex justify-end gap-1.5 opacity-60 md:opacity-0 group-hover:opacity-100 transition-opacity">
+                      <div className="flex justify-end gap-1.5">
                         <button 
                           onClick={() => { setSelectedDeviceForQr(device); setIsQrModalOpen(true); }}
                           title="Xem mã QR & Chi tiết"
