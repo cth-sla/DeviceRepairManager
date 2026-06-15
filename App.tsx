@@ -74,11 +74,7 @@ const AppRoutes: React.FC = () => {
         </ProtectedRoute>
       } />
       
-      <Route path="/devices" element={
-        <ProtectedRoute>
-          <DevicesPage />
-        </ProtectedRoute>
-      } />
+      <Route path="/devices" element={<DevicesPage />} />
       
       <Route path="/warranty" element={
         <ProtectedRoute>

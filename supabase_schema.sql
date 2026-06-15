@@ -99,6 +99,8 @@ drop policy if exists "Enable all access for authenticated users" on public.cust
 drop policy if exists "Enable all access for authenticated users" on public.tickets;
 drop policy if exists "Enable all access for authenticated users" on public.warranties;
 drop policy if exists "Enable all access for authenticated users" on public.devices;
+drop policy if exists "Enable public read for devices" on public.devices;
+drop policy if exists "Enable public read for organizations" on public.organizations;
 
 -- Tạo chính sách mới cho phép truy cập toàn quyền khi đã đăng nhập
 create policy "Enable all access for authenticated users" on public.organizations for all using (true);
@@ -106,3 +108,7 @@ create policy "Enable all access for authenticated users" on public.customers fo
 create policy "Enable all access for authenticated users" on public.tickets for all using (true);
 create policy "Enable all access for authenticated users" on public.warranties for all using (true);
 create policy "Enable all access for authenticated users" on public.devices for all using (true);
+
+-- Cho phép đọc thiết bị và đơn vị công khai phục vụ tính năng quét mã QR
+create policy "Enable public read for devices" on public.devices for select using (true);
+create policy "Enable public read for organizations" on public.organizations for select using (true);

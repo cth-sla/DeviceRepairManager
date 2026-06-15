@@ -1,10 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, Navigate } from 'react-router-dom';
 import { QRCodeCanvas } from 'qrcode.react';
-import { Plus, Search, FileEdit, Trash2, Download, Upload, Package, Filter, X, Save, QrCode, Eye, Printer, Copy, Check } from 'lucide-react';
+import { 
+  Plus, Search, FileEdit, Trash2, Download, Upload, Package, Filter, X, 
+  Save, QrCode, Eye, Printer, Copy, Check, ShieldAlert, Laptop, Calendar, 
+  Landmark, Settings, Link2, Info, ArrowLeft, LogIn, KeySquare
+} from 'lucide-react';
 import { StorageService } from '../services/storage';
 import { Device, DeviceType, Organization } from '../types';
 import { DeviceIcon } from '../components/DeviceIcon';
+import { useAuth } from '../contexts/AuthContext';
 import * as XLSX from 'xlsx';
 
 export const DevicesPage: React.FC = () => {
@@ -332,6 +337,161 @@ export const DevicesPage: React.FC = () => {
       setCurrentPage(totalPages);
     }
   }, [totalPages, currentPage]);
+
+  // Check if session is authenticated for public QR Code scanning
+  const { session } = useAuth();
+  const publicDeviceId = searchParams.get('id');
+
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-slate-50 p-4">
+        <div className="text-center space-y-3">
+          <QrCode className="animate-pulse text-blue-600 mx-auto" size={48} />
+          <p className="text-slate-500 font-medium">Đang tải thông tin thiết bị...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!session) {
+    if (!publicDeviceId) {
+      return <Navigate to="/login" replace />;
+    }
+    
+    // Find device
+    const device = devices.find(d => d.id === publicDeviceId);
+    const org = device ? organizations.find(o => o.id === device.organizationId) : null;
+
+    if (!device) {
+      return (
+        <div className="flex min-h-screen items-center justify-center bg-slate-50 p-4 font-sans">
+          <div className="bg-white rounded-3xl shadow-xl w-full max-w-md p-8 border border-slate-100 text-center space-y-6 animate-in fade-in zoom-in duration-200">
+            <div className="w-16 h-16 bg-red-50 text-red-500 rounded-2xl flex items-center justify-center mx-auto shadow-inner">
+              <ShieldAlert size={32} />
+            </div>
+            <div className="space-y-2">
+              <h1 className="text-xl font-extrabold text-slate-800">Không tìm thấy thiết bị</h1>
+              <p className="text-sm text-slate-500">Mã thiết bị không tồn tại trong hệ thống hoặc đã bị xóa.</p>
+            </div>
+            <a 
+              href="/login"
+              className="flex items-center justify-center gap-2 w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-bold text-sm transition-all shadow-xl shadow-blue-500/20"
+            >
+              <LogIn size={18} />
+              <span>Đăng nhập hệ thống</span>
+            </a>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-slate-50 p-4 sm:p-6 font-sans">
+        <div className="bg-white rounded-3xl shadow-xl w-full max-w-lg overflow-hidden border border-slate-100 flex flex-col animate-in fade-in slide-in-from-bottom-4 duration-300">
+          
+          {/* Header Banner */}
+          <div className="bg-gradient-to-r from-blue-600 to-indigo-700 p-6 text-white text-center relative overflow-hidden">
+            <div className="absolute top-0 right-0 p-8 opacity-10 pointer-events-none">
+              <QrCode size={120} />
+            </div>
+            <span className="inline-block px-3 py-1 bg-white/25 backdrop-blur-md rounded-full text-[10px] font-extrabold uppercase tracking-widest text-white/95 mb-2">
+              Thẻ thông tin tài sản
+            </span>
+            <h1 className="text-xl sm:text-2xl font-extrabold tracking-tight">Chi tiết Thiết bị sử dụng</h1>
+            <p className="text-xs text-white/80 mt-1 font-mono">{device.id}</p>
+          </div>
+
+          <div className="p-6 space-y-6">
+            {/* Device Main Info Box */}
+            <div className="flex items-start gap-4">
+              <div className="p-4 bg-blue-50 text-blue-600 rounded-2xl shadow-inner flex-shrink-0">
+                <DeviceIcon type={device.deviceType} size={32} />
+              </div>
+              <div className="space-y-1">
+                <span className="inline-flex px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-blue-100 text-blue-700">
+                  {device.deviceType}
+                </span>
+                <h2 className="text-lg sm:text-xl font-extrabold text-slate-800 tracking-tight leading-snug">
+                  {device.name}
+                </h2>
+              </div>
+            </div>
+
+            {/* Crucial Section: Organization / Unit in USE */}
+            <div className="bg-slate-50 border border-slate-200/60 rounded-2xl p-5 space-y-3 relative overflow-hidden">
+              <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none">
+                <Landmark size={48} />
+              </div>
+              <div className="flex items-center gap-2">
+                <Landmark size={18} className="text-indigo-600" />
+                <span className="text-xs font-bold uppercase tracking-wide text-slate-400">Đơn vị đang sử dụng</span>
+              </div>
+              <div className="space-y-1.5 pl-7">
+                <div className="text-lg font-extrabold text-slate-900 leading-snug">
+                  {org?.name || '---'}
+                </div>
+                {org?.address && (
+                  <p className="text-xs text-slate-500 font-medium">
+                    📍 {org.address}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {/* Secondary Attributes List */}
+            <div className="divide-y divide-slate-100 border-t border-b border-slate-100 py-2">
+              {/* Serial Number */}
+              <div className="flex py-3 justify-between items-center text-sm">
+                <span className="text-slate-400 font-semibold tracking-wide">Số Serial / Model</span>
+                <span className="font-mono bg-slate-100 text-slate-700 px-2 py-1 rounded text-xs font-bold">
+                  {device.serialNumber || 'N/A'}
+                </span>
+              </div>
+
+              {/* Quantity */}
+              <div className="flex py-3 justify-between items-center text-sm">
+                <span className="text-slate-400 font-semibold tracking-wide">Số lượng</span>
+                <span className="font-bold text-slate-800 bg-blue-50 text-blue-700 px-2 py-1 rounded text-xs">
+                  {device.quantity} chiếc
+                </span>
+              </div>
+
+              {/* Start Date */}
+              <div className="flex py-3 justify-between items-center text-sm">
+                <span className="text-slate-400 font-semibold tracking-wide">Ngày đưa vào sử dụng</span>
+                <span className="font-semibold text-slate-700">
+                  {device.startTime || '---'}
+                </span>
+              </div>
+            </div>
+
+            {/* Extra: System Info Footer */}
+            <div className="flex items-center gap-2 p-3.5 bg-sky-50/50 border border-sky-100 rounded-xl text-sky-700 text-xs leading-relaxed">
+              <Info size={16} className="text-flex-shrink-0" />
+              <p className="font-medium">
+                Đây là thông tin xác thực từ <strong className="font-extrabold">Hệ thống Quản lý Thiết bị SonLaSmart</strong>.
+              </p>
+            </div>
+          </div>
+
+          {/* Action Footer */}
+          <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex items-center justify-between gap-4">
+            <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest font-mono">
+              qltb.sonlasmart.com
+            </span>
+            <a 
+              href="/login"
+              className="inline-flex items-center gap-1.5 px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-xl font-bold text-xs transition-colors shadow-md"
+            >
+              <LogIn size={14} />
+              <span>Đăng nhập Quản trị</span>
+            </a>
+          </div>
+
+        </div>
+      </div>
+    );
+  }
 
   // Thống kê theo loại thiết bị
   const typeStats = Object.values(DeviceType).map(type => {
