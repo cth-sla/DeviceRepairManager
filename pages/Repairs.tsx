@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Customer, RepairTicket, DeviceType, RepairStatus, ShippingMethod, Organization } from '../types';
+import { Customer, RepairTicket, DeviceType, RepairStatus, ShippingMethod, Organization, Device } from '../types';
 import { StorageService } from '../services/storage';
 import { Plus, Search, Filter, AlertCircle, CheckCircle2, Clock, Truck, ChevronRight, X, History, Download, ChevronLeft, Loader2, Trash2, UserPlus, UserCheck, Barcode, Eye, Wrench } from 'lucide-react';
 import { HistoryModal } from '../components/HistoryModal';
@@ -10,6 +10,7 @@ export const RepairsPage: React.FC = () => {
   const [tickets, setTickets] = useState<RepairTicket[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [organizations, setOrganizations] = useState<Organization[]>([]);
+  const [devices, setDevices] = useState<Device[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -37,14 +38,16 @@ export const RepairsPage: React.FC = () => {
   const fetchData = async () => {
     setIsLoading(true);
     try {
-      const [t, c, o] = await Promise.all([
+      const [t, c, o, d] = await Promise.all([
         StorageService.getTickets(),
         StorageService.getCustomers(),
-        StorageService.getOrganizations()
+        StorageService.getOrganizations(),
+        StorageService.getDevices()
       ]);
       setTickets(t);
       setCustomers(c);
       setOrganizations(o);
+      setDevices(d);
     } catch (err) {
       console.error("Fetch data error:", err);
     } finally {
@@ -105,6 +108,37 @@ export const RepairsPage: React.FC = () => {
 
   const handleSave = async () => {
     let finalCustomerId = formData.customerId;
+
+    // Tự động tạo khách hàng đại diện nếu chọn nhanh theo Đơn vị sử dụng
+    if (finalCustomerId && finalCustomerId.startsWith('org-fallback-')) {
+      const orgId = finalCustomerId.replace('org-fallback-', '');
+      const org = organizations.find(o => o.id === orgId);
+      const orgName = org ? org.name : 'Đơn vị';
+      
+      const existingRep = customers.find(c => c.organizationId === orgId && (c.fullName === `Đại diện ${orgName}` || c.fullName === 'Khách hàng (Đại diện)'));
+      if (existingRep) {
+        finalCustomerId = existingRep.id;
+      } else {
+        const newCustId = crypto.randomUUID();
+        const customerToSave: Customer = {
+          id: newCustId,
+          fullName: `Đại diện ${orgName}`,
+          organizationId: orgId,
+          phone: '',
+          address: org?.address || '',
+          createdAt: Date.now()
+        };
+
+        try {
+          await StorageService.addCustomer(customerToSave);
+          finalCustomerId = newCustId;
+          setCustomers(prev => [customerToSave, ...prev]);
+        } catch (e) {
+          console.error("Lỗi khi tạo tự động khách hàng đại diện:", e);
+          finalCustomerId = newCustId; // Gán ID luôn để phiếu sửa chữa vẫn được lưu
+        }
+      }
+    }
 
     if (isAddingNewCustomer) {
       if (!newCustomerData.fullName || !newCustomerData.organizationId) {
@@ -258,13 +292,49 @@ export const RepairsPage: React.FC = () => {
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
   const paginatedTickets = filteredTickets.slice(startIndex, startIndex + ITEMS_PER_PAGE);
 
-  const currentPreviewCustomer = isAddingNewCustomer 
-    ? newCustomerData.fullName || 'Đang nhập tên...' 
-    : getCustomer(formData.customerId || '')?.fullName || 'Chưa chọn khách hàng';
+  const getPreviewCustomerInfo = () => {
+    if (isAddingNewCustomer) {
+      return {
+        name: newCustomerData.fullName || 'Đang nhập tên...',
+        org: organizations.find(o => o.id === newCustomerData.organizationId)?.name || 'Chưa chọn đơn vị'
+      };
+    }
     
-  const currentPreviewOrg = isAddingNewCustomer
-    ? (organizations.find(o => o.id === newCustomerData.organizationId)?.name || 'Chưa chọn đơn vị')
-    : (getOrgName(formData.customerId || '') || '---');
+    const cid = formData.customerId || '';
+    if (cid.startsWith('org-fallback-')) {
+      const orgId = cid.replace('org-fallback-', '');
+      const org = organizations.find(o => o.id === orgId);
+      return {
+        name: `Đại diện ${org?.name || 'Đơn vị'}`,
+        org: org?.name || '---'
+      };
+    }
+    
+    const cust = getCustomer(cid);
+    return {
+      name: cust?.fullName || 'Chưa chọn khách hàng',
+      org: getOrgName(cid) || '---'
+    };
+  };
+
+  const previewInfo = getPreviewCustomerInfo();
+  const currentPreviewCustomer = previewInfo.name;
+  const currentPreviewOrg = previewInfo.org;
+
+  const getCurrentOrgId = () => {
+    if (isAddingNewCustomer) {
+      return newCustomerData.organizationId || null;
+    }
+    const cid = formData.customerId || '';
+    if (cid.startsWith('org-fallback-')) {
+      return cid.replace('org-fallback-', '');
+    }
+    const customer = customers.find(c => c.id === cid);
+    return customer ? customer.organizationId : null;
+  };
+
+  const currentOrgId = getCurrentOrgId();
+  const orgDevices = currentOrgId ? devices.filter(d => d.organizationId === currentOrgId) : [];
 
   return (
     <div className="space-y-6">
@@ -458,20 +528,87 @@ export const RepairsPage: React.FC = () => {
                       </div>
                     ) : (
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                        <select className="w-full px-4 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 bg-white shadow-sm" value={formData.customerId || ''} onChange={(e) => setFormData({...formData, customerId: e.target.value})} >
-                          <option value="">-- Chọn khách hàng --</option>
-                          {customers.map(c => (<option key={c.id} value={c.id}>{c.fullName} - {getOrgName(c.id)}</option>))}
+                        <select className="w-full px-4 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 bg-white shadow-sm font-medium text-slate-700" value={formData.customerId || ''} onChange={(e) => setFormData({...formData, customerId: e.target.value})} >
+                          <option value="">-- Chọn khách hàng hoặc Đơn vị sử dụng --</option>
+                          
+                          {customers.length > 0 && (
+                            <optgroup label="Khách hàng (Người liên hệ)">
+                              {customers.map(c => (
+                                <option key={c.id} value={c.id}>
+                                  👤 {c.fullName} ({getOrgName(c.id)})
+                                </option>
+                              ))}
+                            </optgroup>
+                          )}
+
+                          {organizations.length > 0 && (
+                            <optgroup label="Chọn nhanh theo Đơn vị sử dụng">
+                              {organizations.map(org => (
+                                <option key={`org-fallback-${org.id}`} value={`org-fallback-${org.id}`}>
+                                  🏢 Đơn vị: {org.name}
+                                </option>
+                              ))}
+                            </optgroup>
+                          )}
                         </select>
                         <input type="date" className="w-full px-4 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 bg-white shadow-sm" value={formData.receiveDate || ''} onChange={(e) => setFormData({...formData, receiveDate: e.target.value})} />
                       </div>
                     )}
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                    <select className="w-full px-4 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 bg-white" value={formData.deviceType || DeviceType.CODEC} onChange={(e) => setFormData({...formData, deviceType: e.target.value as DeviceType})}>
-                      {Object.values(DeviceType).map(t => (<option key={t} value={t}>{t}</option>))}
-                    </select>
-                    <input type="text" className="w-full px-4 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 uppercase font-mono shadow-sm bg-white" value={formData.serialNumber || ''} onChange={(e) => setFormData({...formData, serialNumber: e.target.value})} placeholder="VD: SN12345678" />
+                  <div className="space-y-4">
+                    {orgDevices.length > 0 && (
+                      <div className="p-4 bg-indigo-50/50 rounded-xl border border-indigo-100 flex flex-col gap-2.5 animate-in fade-in duration-200">
+                        <span className="text-[11px] font-bold text-indigo-700 uppercase tracking-wider flex items-center gap-1">
+                          <Barcode size={14} /> Chọn thiết bị sẵn có của đơn vị sử dụng:
+                        </span>
+                        
+                        <select
+                          className="w-full px-3 py-2 border border-indigo-200 focus:ring-2 focus:ring-indigo-500 bg-white rounded-lg text-sm font-semibold text-slate-700"
+                          value={orgDevices.some(d => d.serialNumber === formData.serialNumber) ? (formData.serialNumber || '') : 'custom'}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            if (val === 'custom') {
+                              setFormData(prev => ({
+                                ...prev,
+                                serialNumber: ''
+                              }));
+                            } else {
+                              const found = orgDevices.find(d => d.serialNumber === val);
+                              if (found) {
+                                setFormData(prev => ({
+                                  ...prev,
+                                  serialNumber: found.serialNumber || '',
+                                  deviceType: found.deviceType as DeviceType
+                                }));
+                              }
+                            }
+                          }}
+                        >
+                          <option value="">-- Chọn thiết bị trong danh sách --</option>
+                          {orgDevices.map(d => (
+                            <option key={d.id} value={d.serialNumber || ''}>
+                              📦 {d.name} {d.serialNumber ? `(SN: ${d.serialNumber})` : '(Không có serial)'} [Loại: {d.deviceType}]
+                            </option>
+                          ))}
+                          <option value="custom">➕ Nhập số serial của thiết bị khác / Nhập tay...</option>
+                        </select>
+                      </div>
+                    )}
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                      <div>
+                        <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">Loại Thiết bị</label>
+                        <select className="w-full px-4 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 bg-white" value={formData.deviceType || DeviceType.CODEC} onChange={(e) => setFormData({...formData, deviceType: e.target.value as DeviceType})}>
+                          {Object.values(DeviceType).map(t => (<option key={t} value={t}>{t}</option>))}
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">Số Serial / Model</label>
+                        <input type="text" className="w-full px-4 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 uppercase font-mono shadow-sm bg-white" value={formData.serialNumber || ''} onChange={(e) => setFormData({...formData, serialNumber: e.target.value})} placeholder="VD: SN12345678" />
+                      </div>
+                    </div>
                   </div>
                     
                   <textarea rows={2} className="w-full px-4 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 shadow-sm bg-white" value={formData.deviceCondition || ''} onChange={(e) => setFormData({...formData, deviceCondition: e.target.value})} placeholder="VD: Mất nguồn, sọc màn hình..." />
