@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { WarrantyTicket, WarrantyStatus, Organization, DeviceType, ShippingMethod } from '../types';
+import { WarrantyTicket, WarrantyStatus, Organization, DeviceType, ShippingMethod, Device } from '../types';
 import { StorageService } from '../services/storage';
 import { Plus, Search, Filter, AlertCircle, CheckCircle2, Clock, Truck, ChevronRight, X, ChevronLeft, Building2, Download, Loader2, Barcode, Eye, Trash2 } from 'lucide-react';
 import { DeviceIcon } from '../components/DeviceIcon';
@@ -8,6 +8,7 @@ import { ShippingStatusBadge } from '../components/ShippingStatusBadge';
 export const WarrantyPage: React.FC = () => {
   const [tickets, setTickets] = useState<WarrantyTicket[]>([]);
   const [organizations, setOrganizations] = useState<Organization[]>([]);
+  const [devices, setDevices] = useState<Device[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -23,12 +24,14 @@ export const WarrantyPage: React.FC = () => {
   const fetchData = async () => {
     setIsLoading(true);
     try {
-      const [t, o] = await Promise.all([
+      const [t, o, d] = await Promise.all([
         StorageService.getWarrantyTickets(),
-        StorageService.getOrganizations()
+        StorageService.getOrganizations(),
+        StorageService.getDevices()
       ]);
       setTickets(t);
       setOrganizations(o);
+      setDevices(d);
     } catch (e) {
       console.error("Fetch data error:", e);
     } finally {
@@ -163,6 +166,8 @@ export const WarrantyPage: React.FC = () => {
   const totalPages = Math.ceil(filteredTickets.length / ITEMS_PER_PAGE);
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
   const paginatedTickets = filteredTickets.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+
+  const orgDevices = formData.organizationId ? devices.filter(d => d.organizationId === formData.organizationId) : [];
 
   return (
     <div className="space-y-6">
@@ -334,16 +339,57 @@ export const WarrantyPage: React.FC = () => {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-bold text-slate-500 uppercase ml-1">Loại thiết bị *</label>
-                      <select className="w-full px-4 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 bg-white" value={formData.deviceType || DeviceType.CODEC} onChange={(e) => setFormData({...formData, deviceType: e.target.value as DeviceType})}>
-                        {Object.values(DeviceType).map(t => (<option key={t} value={t}>{t}</option>))}
-                      </select>
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-bold text-slate-500 uppercase ml-1">Số Serial / Model</label>
-                      <input type="text" className="w-full px-4 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 uppercase font-mono bg-white shadow-sm" value={formData.serialNumber || ''} onChange={(e) => setFormData({...formData, serialNumber: e.target.value})} placeholder="VD: SN12345678" />
+                  <div className="space-y-4">
+                    {orgDevices.length > 0 && (
+                      <div className="p-4 bg-indigo-50/50 rounded-xl border border-indigo-100 flex flex-col gap-2.5 animate-in fade-in duration-200">
+                        <span className="text-[11px] font-bold text-indigo-700 uppercase tracking-wider flex items-center gap-1">
+                          <Barcode size={14} className="text-indigo-600" /> Chọn thiết bị sẵn có của đơn vị sử dụng:
+                        </span>
+                        
+                        <select
+                          className="w-full px-3 py-2 border border-indigo-200 focus:ring-2 focus:ring-indigo-500 bg-white rounded-lg text-sm font-semibold text-slate-700"
+                          value={orgDevices.some(d => d.serialNumber === formData.serialNumber) ? (formData.serialNumber || '') : 'custom'}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            if (val === 'custom') {
+                              setFormData(prev => ({
+                                ...prev,
+                                serialNumber: ''
+                              }));
+                            } else {
+                              const found = orgDevices.find(d => d.serialNumber === val);
+                              if (found) {
+                                setFormData(prev => ({
+                                  ...prev,
+                                  serialNumber: found.serialNumber || '',
+                                  deviceType: found.deviceType as DeviceType
+                                }));
+                              }
+                            }
+                          }}
+                        >
+                          <option value="">-- Chọn thiết bị trong danh sách --</option>
+                          {orgDevices.map(d => (
+                            <option key={d.id} value={d.serialNumber || ''}>
+                              📦 {d.name} {d.serialNumber ? `(SN: ${d.serialNumber})` : '(Không có serial)'} [Loại: {d.deviceType}]
+                            </option>
+                          ))}
+                          <option value="custom">➕ Nhập số serial của thiết bị khác / Nhập tay...</option>
+                        </select>
+                      </div>
+                    )}
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-bold text-slate-500 uppercase ml-1">Loại thiết bị *</label>
+                        <select className="w-full px-4 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 bg-white" value={formData.deviceType || DeviceType.CODEC} onChange={(e) => setFormData({...formData, deviceType: e.target.value as DeviceType})}>
+                          {Object.values(DeviceType).map(t => (<option key={t} value={t}>{t}</option>))}
+                        </select>
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-bold text-slate-500 uppercase ml-1">Số Serial / Model</label>
+                        <input type="text" className="w-full px-4 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 uppercase font-mono bg-white shadow-sm" value={formData.serialNumber || ''} onChange={(e) => setFormData({...formData, serialNumber: e.target.value})} placeholder="VD: SN12345678" />
+                      </div>
                     </div>
                   </div>
                 </div>
