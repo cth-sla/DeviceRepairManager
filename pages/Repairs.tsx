@@ -30,6 +30,11 @@ export const RepairsPage: React.FC = () => {
   const [copied, setCopied] = useState(false);
   const [formData, setFormData] = useState<Partial<RepairTicket>>({});
   
+  // States for replacing unfixable devices
+  const [isReplacementActive, setIsReplacementActive] = useState(false);
+  const [replacementSerial, setReplacementSerial] = useState('');
+  const [originalSerial, setOriginalSerial] = useState('');
+  
   const [isAddingNewCustomer, setIsAddingNewCustomer] = useState(false);
   const [newCustomerData, setNewCustomerData] = useState<Partial<Customer>>({
     fullName: '',
@@ -215,6 +220,53 @@ export const RepairsPage: React.FC = () => {
     };
 
     try {
+      // Execute serial swap in Organization inventory if replacement is active
+      const cleanNewSerial = replacementSerial?.trim().toUpperCase();
+      if (editingId && isReplacementActive && cleanNewSerial) {
+        const currentOrgId = getCurrentOrgId();
+        if (currentOrgId && originalSerial) {
+          const oldDevice = devices.find(d => 
+            d.organizationId === currentOrgId && 
+            d.serialNumber?.trim().toUpperCase() === originalSerial.trim().toUpperCase()
+          );
+          
+          const warehouseDevice = devices.find(d => 
+            d.serialNumber?.trim().toUpperCase() === cleanNewSerial &&
+            ((!d.organizationId || d.organizationId === '') || d.isReserve === true)
+          );
+          
+          if (oldDevice) {
+            const updatedDevice = {
+              ...oldDevice,
+              serialNumber: cleanNewSerial,
+              isReserve: false
+            };
+            await StorageService.updateDevice(updatedDevice);
+          }
+
+          if (warehouseDevice) {
+            const updatedWarehouseDevice = {
+              ...warehouseDevice,
+              serialNumber: originalSerial,
+              isReserve: false,
+              organizationId: ''
+            };
+            await StorageService.updateDevice(updatedWarehouseDevice);
+          }
+        }
+        
+        // Update ticket with new replacement serial and append an audit note
+        newTicket.serialNumber = cleanNewSerial;
+        const replacementNote = `[ĐÃ ĐỔI THIẾT BỊ: Thay thế Serial ${originalSerial || 'N/A'} bằng Serial mới ${cleanNewSerial}]`;
+        if (newTicket.returnNote) {
+          if (!newTicket.returnNote.includes(replacementNote)) {
+            newTicket.returnNote = `${replacementNote}\n${newTicket.returnNote}`;
+          }
+        } else {
+          newTicket.returnNote = replacementNote;
+        }
+      }
+
       if (editingId) {
         await StorageService.updateTicket(newTicket);
       } else {
@@ -232,6 +284,11 @@ export const RepairsPage: React.FC = () => {
     setIsAddingNewCustomer(ticket ? false : true);
     setNewCustomerData({ fullName: '', organizationId: '', phone: '', address: '' });
     setCopied(false);
+    
+    // Set replacement defaults
+    setIsReplacementActive(false);
+    setReplacementSerial('');
+    setOriginalSerial(ticket ? ticket.serialNumber || '' : '');
     
     if (ticket) {
       setEditingId(ticket.id);
@@ -259,6 +316,9 @@ export const RepairsPage: React.FC = () => {
     setActiveTicketId('');
     setFormData({});
     setCopied(false);
+    setIsReplacementActive(false);
+    setReplacementSerial('');
+    setOriginalSerial('');
   };
 
   const openDeviceHistory = (e: React.MouseEvent, ticket: RepairTicket) => {
@@ -662,6 +722,79 @@ export const RepairsPage: React.FC = () => {
                     </div>
                   )}
                 </div>
+
+                {/* 3. Đổi thiết bị (Thiết bị hỏng không sửa được) */}
+                {editingId && (
+                  <div className="space-y-4 pt-2">
+                    <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100 pb-2 flex items-center justify-between">
+                      <span>3. Đổi thiết bị (Không sửa được)</span>
+                      <span className="text-[10px] bg-red-100 text-red-600 font-bold px-2 py-0.5 rounded border border-red-200">Đặc biệt</span>
+                    </h4>
+
+                    <div className="p-4 bg-red-50/30 rounded-2xl border border-red-100/50 space-y-4">
+                      <label className="flex items-center gap-2.5 cursor-pointer select-none">
+                        <input
+                          type="checkbox"
+                          checked={isReplacementActive}
+                          onChange={(e) => {
+                            setIsReplacementActive(e.target.checked);
+                            if (e.target.checked) {
+                              setReplacementSerial('');
+                            }
+                          }}
+                          className="w-4 h-4 text-red-600 border-slate-300 rounded focus:ring-red-500"
+                        />
+                        <span className="text-sm font-semibold text-slate-700">Kích hoạt chế độ đổi thiết bị mới cho khách hàng</span>
+                      </label>
+
+                      {isReplacementActive && (
+                        <div className="space-y-4 pt-2 animate-in fade-in duration-200">
+                          <p className="text-xs text-slate-500 leading-relaxed">
+                            hệ thống sẽ thực hiện cập nhật lại số Serial của thiết bị hỏng sang Serial mới trong kho cơ sở dữ liệu của Đơn vị sử dụng (Serial mới thay thế hẳn Serial cũ).
+                          </p>
+
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                              <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">Chọn từ Kho hàng & Dự trữ</label>
+                              <select
+                                className="w-full px-4 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 bg-white text-sm"
+                                value={replacementSerial}
+                                onChange={(e) => setReplacementSerial(e.target.value)}
+                              >
+                                <option value="">-- Chọn số Serial sẵn có --</option>
+                                {devices
+                                  .filter(d => d.serialNumber && d.serialNumber !== originalSerial && ((!d.organizationId || d.organizationId === '') || d.isReserve === true))
+                                  .map(d => (
+                                    <option key={d.id} value={d.serialNumber}>
+                                      {d.name} (SN: {d.serialNumber}) - {d.isReserve ? '[Dự trữ]' : '[Tồn kho]'}
+                                    </option>
+                                  ))
+                                }
+                              </select>
+                            </div>
+
+                            <div>
+                              <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">Hoặc nhập tay Serial mới thay thế</label>
+                              <input
+                                type="text"
+                                className="w-full px-4 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 uppercase font-mono shadow-sm bg-white text-slate-700 text-sm font-semibold"
+                                value={replacementSerial}
+                                onChange={(e) => setReplacementSerial(e.target.value)}
+                                placeholder="VD: SN99999999"
+                              />
+                            </div>
+                          </div>
+
+                          {replacementSerial && (
+                            <div className="p-3 bg-blue-50 rounded-xl border border-blue-100 text-xs text-blue-800">
+                              <span className="font-bold">Dự kiến thay đổi:</span> Thay đổi Serial trong CSDL của Đơn vị từ <span className="font-mono font-bold bg-white px-1.5 py-0.5 rounded border border-blue-200">{originalSerial || 'N/A'}</span> sang <span className="font-mono font-bold bg-white px-1.5 py-0.5 rounded border-blue-200">{replacementSerial.toUpperCase()}</span>.
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="w-full lg:w-80 bg-slate-50 p-6 flex flex-col justify-between overflow-y-auto">

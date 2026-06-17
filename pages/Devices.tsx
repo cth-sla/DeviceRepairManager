@@ -29,6 +29,7 @@ export const DevicesPage: React.FC = () => {
   const [selectedDeviceForQr, setSelectedDeviceForQr] = useState<Device | null>(null);
   const [isQrModalOpen, setIsQrModalOpen] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [activeTab, setActiveTab] = useState<'all' | 'in_use' | 'warehouse'>('all');
   const ITEMS_PER_PAGE = 10;
   
   // Form state
@@ -38,7 +39,8 @@ export const DevicesPage: React.FC = () => {
     deviceType: DeviceType.CODEC,
     quantity: 1,
     startTime: new Date().toISOString().split('T')[0],
-    organizationId: ''
+    organizationId: '',
+    isReserve: false
   });
 
   useEffect(() => {
@@ -230,6 +232,20 @@ export const DevicesPage: React.FC = () => {
     }
   };
 
+  const handleToggleReserve = async (device: Device) => {
+    try {
+      const updated: Device = {
+        ...device,
+        isReserve: !device.isReserve
+      };
+      await StorageService.updateDevice(updated);
+      loadDevices();
+    } catch (error) {
+      console.error('Error toggling reserve status:', error);
+      alert('Có lỗi xảy ra khi chuyển trạng thái dự trữ');
+    }
+  };
+
   const resetForm = () => {
     setFormData({
       name: '',
@@ -237,7 +253,8 @@ export const DevicesPage: React.FC = () => {
       deviceType: DeviceType.CODEC,
       quantity: 1,
       startTime: new Date().toISOString().split('T')[0],
-      organizationId: ''
+      organizationId: '',
+      isReserve: false
     });
   };
 
@@ -255,7 +272,8 @@ export const DevicesPage: React.FC = () => {
       deviceType: device.deviceType,
       quantity: device.quantity,
       startTime: device.startTime,
-      organizationId: device.organizationId || ''
+      organizationId: device.organizationId || '',
+      isReserve: device.isReserve || false
     });
     setIsModalOpen(true);
   };
@@ -325,10 +343,19 @@ export const DevicesPage: React.FC = () => {
     const org = organizations.find(o => o.id === d.organizationId);
     const orgName = org?.name || '';
     const matchesSearch = d.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                          d.serialNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          (d.serialNumber || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
                           orgName.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesType = filterType === 'all' || d.deviceType === filterType;
-    return matchesSearch && matchesType;
+    
+    // Tab filtering
+    let matchesTab = true;
+    if (activeTab === 'in_use') {
+      matchesTab = d.organizationId !== undefined && d.organizationId !== '';
+    } else if (activeTab === 'warehouse') {
+      matchesTab = d.organizationId === undefined || d.organizationId === '' || d.isReserve === true;
+    }
+    
+    return matchesSearch && matchesType && matchesTab;
   });
 
   // Pagination logic
@@ -889,6 +916,52 @@ export const DevicesPage: React.FC = () => {
         </button>
       )}
 
+      {/* Tab Navigation */}
+      <div className="flex border-b border-slate-200 gap-1 mt-4">
+        <button
+          onClick={() => { setActiveTab('all'); setCurrentPage(1); }}
+          className={`px-4 sm:px-6 py-3 font-bold text-xs sm:text-sm border-b-2 transition-all flex items-center gap-2 cursor-pointer ${
+            activeTab === 'all'
+              ? 'border-blue-600 text-blue-600'
+              : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+          }`}
+        >
+          <Package size={16} />
+          <span>Tất cả Thiết bị</span>
+          <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-slate-150 text-slate-600 font-semibold">
+            {devices.length}
+          </span>
+        </button>
+        <button
+          onClick={() => { setActiveTab('in_use'); setCurrentPage(1); }}
+          className={`px-4 sm:px-6 py-3 font-bold text-xs sm:text-sm border-b-2 transition-all flex items-center gap-2 cursor-pointer ${
+            activeTab === 'in_use'
+              ? 'border-blue-600 text-blue-600'
+              : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+          }`}
+        >
+          <Laptop size={16} />
+          <span>Đang sử dụng</span>
+          <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-slate-150 text-slate-600 font-semibold">
+            {devices.filter(d => d.organizationId && d.organizationId !== '').length}
+          </span>
+        </button>
+        <button
+          onClick={() => { setActiveTab('warehouse'); setCurrentPage(1); }}
+          className={`px-4 sm:px-6 py-3 font-bold text-xs sm:text-sm border-b-2 transition-all flex items-center gap-2 cursor-pointer ${
+            activeTab === 'warehouse'
+              ? 'border-amber-500 text-amber-600'
+              : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+          }`}
+        >
+          <Settings size={16} className="text-amber-500 animate-[spin_20s_linear_infinite]" />
+          <span>Kho hàng & Dự trữ</span>
+          <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-800 font-bold">
+            {devices.filter(d => !d.organizationId || d.organizationId === '' || d.isReserve).length}
+          </span>
+        </button>
+      </div>
+
       {/* Filters */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-slate-50 p-4 rounded-2xl border border-slate-200">
         <div className="relative">
@@ -937,7 +1010,7 @@ export const DevicesPage: React.FC = () => {
             <tbody className="divide-y divide-slate-100">
               {loading ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center text-slate-400">
+                  <td colSpan={7} className="px-6 py-12 text-center text-slate-400">
                     <div className="flex flex-col items-center gap-2">
                       <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
                       <span>Đang tải dữ liệu...</span>
@@ -946,7 +1019,7 @@ export const DevicesPage: React.FC = () => {
                 </tr>
               ) : filteredDevices.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center text-slate-400">
+                  <td colSpan={7} className="px-6 py-12 text-center text-slate-400">
                     <div className="flex flex-col items-center gap-2">
                       <Package size={48} className="opacity-20" />
                       <span>Không tìm thấy thiết bị nào</span>
@@ -976,12 +1049,35 @@ export const DevicesPage: React.FC = () => {
                       {device.startTime}
                     </td>
                     <td className="px-6 py-4">
-                      <span className="text-slate-600 font-medium">
-                        {organizations.find(o => o.id === device.organizationId)?.name || '---'}
-                      </span>
+                      {device.isReserve ? (
+                        <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-amber-500/10 text-amber-600 border border-amber-500/20 shadow-sm animate-pulse">
+                          ⚡ Thiết bị Dự trữ
+                        </span>
+                      ) : !device.organizationId || device.organizationId === '' ? (
+                        <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-500/10 text-slate-500 border border-slate-500/10">
+                          📦 Hàng tồn kho
+                        </span>
+                      ) : (
+                        <span className="text-slate-600 font-medium">
+                          {organizations.find(o => o.id === device.organizationId)?.name || '---'}
+                        </span>
+                      )}
                     </td>
                     <td className="px-6 py-4 text-right">
                       <div className="flex justify-end gap-1.5">
+                        {(!device.organizationId || device.organizationId === '') && (
+                          <button 
+                            onClick={() => handleToggleReserve(device)}
+                            title={device.isReserve ? "Chuyển về Hàng tồn kho thường" : "Chuyển làm Thiết bị dự trữ"}
+                            className={`p-2 rounded-lg transition-all ${
+                              device.isReserve 
+                                ? 'text-amber-500 hover:text-amber-700 hover:bg-amber-100' 
+                                : 'text-slate-400 hover:text-blue-600 hover:bg-blue-50'
+                            }`}
+                          >
+                            <Settings size={18} />
+                          </button>
+                        )}
                         <button 
                           onClick={() => { setSelectedDeviceForQr(device); setIsQrModalOpen(true); }}
                           title="Xem mã QR & Chi tiết"
@@ -1139,13 +1235,40 @@ export const DevicesPage: React.FC = () => {
                 <select 
                   className="w-full px-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all"
                   value={formData.organizationId}
-                  onChange={(e) => setFormData({...formData, organizationId: e.target.value})}
+                  onChange={(e) => {
+                    const orgId = e.target.value;
+                    setFormData({
+                      ...formData,
+                      organizationId: orgId,
+                      isReserve: orgId ? false : formData.isReserve
+                    });
+                  }}
                 >
                   <option value="">-- Chọn đơn vị --</option>
                   {organizations.map(org => (
                     <option key={org.id} value={org.id}>{org.name}</option>
                   ))}
                 </select>
+              </div>
+
+              <div className="flex items-center gap-2.5 p-3 bg-slate-50 border border-slate-200 rounded-xl">
+                <input 
+                  type="checkbox"
+                  id="isReserveCheckbox"
+                  className="w-4 h-4 text-blue-600 border-slate-300 rounded focus:ring-blue-500 cursor-pointer"
+                  checked={formData.isReserve}
+                  onChange={(e) => {
+                    const checked = e.target.checked;
+                    setFormData({
+                      ...formData,
+                      isReserve: checked,
+                      organizationId: checked ? '' : formData.organizationId
+                    });
+                  }}
+                />
+                <label htmlFor="isReserveCheckbox" className="text-sm font-semibold text-slate-700 cursor-pointer select-none">
+                  Đặt làm thiết bị dự trữ / dự phòng (Kho hàng)
+                </label>
               </div>
               <div className="flex gap-3 pt-4">
                 <button 

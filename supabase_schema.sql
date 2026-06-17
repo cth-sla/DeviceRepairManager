@@ -72,10 +72,11 @@ create table if not exists public.devices (
     quantity integer default 1,
     start_time text,
     organization_id uuid references public.organizations(id) on delete set null,
+    is_reserve boolean default false,
     created_at bigint
 );
 
--- Đảm bảo có cột mới trong warranties
+-- Đảm bảo có cột mới trong warranties và devices
 do $$ 
 begin 
     if not exists (select 1 from information_schema.columns where table_name='warranties' and column_name='shipping_method') then
@@ -83,6 +84,9 @@ begin
     end if;
     if not exists (select 1 from information_schema.columns where table_name='warranties' and column_name='tracking_number') then
         alter table public.warranties add column tracking_number text;
+    end if;
+    if not exists (select 1 from information_schema.columns where table_name='devices' and column_name='is_reserve') then
+        alter table public.devices add column is_reserve boolean default false;
     end if;
 end $$;
 
@@ -101,6 +105,8 @@ drop policy if exists "Enable all access for authenticated users" on public.warr
 drop policy if exists "Enable all access for authenticated users" on public.devices;
 drop policy if exists "Enable public read for devices" on public.devices;
 drop policy if exists "Enable public read for organizations" on public.organizations;
+drop policy if exists "Enable public read for tickets" on public.tickets;
+drop policy if exists "Enable public read for customers" on public.customers;
 
 -- Tạo chính sách mới cho phép truy cập toàn quyền khi đã đăng nhập
 create policy "Enable all access for authenticated users" on public.organizations for all using (true);
@@ -109,6 +115,8 @@ create policy "Enable all access for authenticated users" on public.tickets for 
 create policy "Enable all access for authenticated users" on public.warranties for all using (true);
 create policy "Enable all access for authenticated users" on public.devices for all using (true);
 
--- Cho phép đọc thiết bị và đơn vị công khai phục vụ tính năng quét mã QR
+-- Cho phép đọc thiết bị, đơn vị, phiếu sửa chữa và khách hàng công khai phục vụ tính năng quét mã QR và tra cứu tiến trình
 create policy "Enable public read for devices" on public.devices for select using (true);
 create policy "Enable public read for organizations" on public.organizations for select using (true);
+create policy "Enable public read for tickets" on public.tickets for select using (true);
+create policy "Enable public read for customers" on public.customers for select using (true);

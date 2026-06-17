@@ -19,6 +19,7 @@ export interface Device {
   startTime: string;
   organizationId?: string;
   createdAt: number;
+  isReserve?: boolean;
 }
 
 export enum ShippingMethod {
