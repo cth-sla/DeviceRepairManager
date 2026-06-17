@@ -570,10 +570,10 @@ export const DevicesPage: React.FC = () => {
             {/* Thống kê nhanh */}
             <div className="lg:col-span-1 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-4">
               <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between">
-                <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Tổng sản phẩm cấu hình</span>
+                <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Tổng sản phẩm</span>
                 <div className="flex items-baseline gap-2 mt-4">
                   <span className="text-3xl font-extrabold text-slate-800">{totalUniqueDevices}</span>
-                  <span className="text-xs text-slate-400 font-medium">dòng máy / mã</span>
+                  <span className="text-xs text-slate-400 font-medium">thiết bị / mã</span>
                 </div>
               </div>
 

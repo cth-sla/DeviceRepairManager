@@ -226,7 +226,7 @@ export const RepairsPage: React.FC = () => {
   };
 
   const openModal = (ticket?: RepairTicket) => {
-    setIsAddingNewCustomer(false);
+    setIsAddingNewCustomer(ticket ? false : true);
     setNewCustomerData({ fullName: '', organizationId: '', phone: '', address: '' });
     
     if (ticket) {
@@ -521,9 +521,10 @@ export const RepairsPage: React.FC = () => {
                             {organizations.map(org => (<option key={org.id} value={org.id}>{org.name}</option>))}
                           </select>
                         </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                           <input type="text" placeholder="Số điện thoại" className="w-full px-4 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 bg-white" value={newCustomerData.phone || ''} onChange={(e) => setNewCustomerData({...newCustomerData, phone: e.target.value})} />
                           <input type="text" placeholder="Địa chỉ" className="w-full px-4 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 bg-white" value={newCustomerData.address || ''} onChange={(e) => setNewCustomerData({...newCustomerData, address: e.target.value})} />
+                          <input type="date" className="w-full px-4 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 bg-white shadow-sm font-medium text-slate-700" value={formData.receiveDate || ''} onChange={(e) => setFormData({...formData, receiveDate: e.target.value})} />
                         </div>
                       </div>
                     ) : (
