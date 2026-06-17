@@ -4,10 +4,11 @@ import { QRCodeCanvas } from 'qrcode.react';
 import { 
   Plus, Search, FileEdit, Trash2, Download, Upload, Package, Filter, X, 
   Save, QrCode, Eye, Printer, Copy, Check, ShieldAlert, Laptop, Calendar, 
-  Landmark, Settings, Link2, Info, ArrowLeft, LogIn, KeySquare
+  Landmark, Settings, Link2, Info, ArrowLeft, LogIn, KeySquare,
+  Wrench, Phone, MapPin, Truck, FileText, CheckCircle2, Clock
 } from 'lucide-react';
 import { StorageService } from '../services/storage';
-import { Device, DeviceType, Organization } from '../types';
+import { Device, DeviceType, Organization, Customer, RepairTicket, RepairStatus } from '../types';
 import { DeviceIcon } from '../components/DeviceIcon';
 import { useAuth } from '../contexts/AuthContext';
 import * as XLSX from 'xlsx';
@@ -15,6 +16,8 @@ import * as XLSX from 'xlsx';
 export const DevicesPage: React.FC = () => {
   const [devices, setDevices] = useState<Device[]>([]);
   const [organizations, setOrganizations] = useState<Organization[]>([]);
+  const [tickets, setTickets] = useState<RepairTicket[]>([]);
+  const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState<string>('all');
@@ -44,12 +47,16 @@ export const DevicesPage: React.FC = () => {
 
   const loadData = async () => {
     setLoading(true);
-    const [devicesData, orgsData] = await Promise.all([
+    const [devicesData, orgsData, ticketsData, customersData] = await Promise.all([
       StorageService.getDevices(),
-      StorageService.getOrganizations()
+      StorageService.getOrganizations(),
+      StorageService.getTickets(),
+      StorageService.getCustomers()
     ]);
     setDevices(devicesData);
     setOrganizations(orgsData);
+    setTickets(ticketsData);
+    setCustomers(customersData);
     setLoading(false);
   };
 
@@ -356,16 +363,17 @@ export const DevicesPage: React.FC = () => {
     );
   }
 
-  if (!session) {
-    if (!publicDeviceId) {
-      return <Navigate to="/login" replace />;
-    }
-    
-    // Find device
+  if (!session && !publicDeviceId) {
+    return <Navigate to="/login" replace />;
+  }
+
+  if (publicDeviceId) {
+    // Find device or ticket
     const device = devices.find(d => d.id === publicDeviceId);
     const org = device ? organizations.find(o => o.id === device.organizationId) : null;
+    const ticket = tickets.find(t => t.id === publicDeviceId);
 
-    if (!device) {
+    if (!device && !ticket) {
       return (
         <div className="flex min-h-screen items-center justify-center bg-slate-50 p-4 font-sans">
           <div className="bg-white rounded-3xl shadow-xl w-full max-w-md p-8 border border-slate-100 text-center space-y-6 animate-in fade-in zoom-in duration-200">
@@ -373,8 +381,8 @@ export const DevicesPage: React.FC = () => {
               <ShieldAlert size={32} />
             </div>
             <div className="space-y-2">
-              <h1 className="text-xl font-extrabold text-slate-800">Không tìm thấy thiết bị</h1>
-              <p className="text-sm text-slate-500">Mã thiết bị không tồn tại trong hệ thống hoặc đã bị xóa.</p>
+              <h1 className="text-xl font-extrabold text-slate-800">Không tìm thấy thông tin</h1>
+              <p className="text-sm text-slate-500">Mã thiết bị hoặc phiếu tiếp nhận không tồn tại trong hệ thống hoặc đã bị xóa.</p>
             </div>
             <a 
               href="/login"
@@ -383,6 +391,235 @@ export const DevicesPage: React.FC = () => {
               <LogIn size={18} />
               <span>Đăng nhập hệ thống</span>
             </a>
+          </div>
+        </div>
+      );
+    }
+
+    if (ticket) {
+      let customerFullName = 'Khách hàng';
+      let customerPhone = '';
+      let customerAddress = '';
+      let orgName = '---';
+
+      if (ticket.customerId.startsWith('org-fallback-')) {
+        const orgId = ticket.customerId.replace('org-fallback-', '');
+        const orgObj = organizations.find(o => o.id === orgId);
+        customerFullName = `Đại diện ${orgObj?.name || 'Đơn vị'}`;
+        orgName = orgObj?.name || '---';
+        customerAddress = orgObj?.address || '';
+      } else {
+        const customerObj = customers.find(c => c.id === ticket.customerId);
+        customerFullName = customerObj?.fullName || 'Khách hàng';
+        customerPhone = customerObj?.phone || '';
+        customerAddress = customerObj?.address || '';
+        if (customerObj) {
+          const orgObj = organizations.find(o => o.id === customerObj.organizationId);
+          orgName = orgObj?.name || '---';
+        }
+      }
+
+      const isReceived = true;
+      const isProcessing = ticket.status === 'Đang xử lý' || ticket.status === 'Đã trả';
+      const isReturned = ticket.status === 'Đã trả';
+
+      return (
+        <div className="flex min-h-screen items-center justify-center bg-slate-50 p-4 sm:p-6 font-sans">
+          <div className="bg-white rounded-3xl shadow-xl w-full max-w-2xl overflow-hidden border border-slate-100 flex flex-col animate-in fade-in slide-in-from-bottom-4 duration-300">
+            
+            {/* Header Banner */}
+            <div className="bg-gradient-to-r from-blue-600 to-indigo-700 p-6 text-white relative overflow-hidden">
+              <div className="absolute top-0 right-0 p-8 opacity-10 pointer-events-none">
+                <Wrench size={100} />
+              </div>
+              <span className="inline-block px-3 py-1 bg-white/25 backdrop-blur-md rounded-full text-[10px] font-extrabold uppercase tracking-widest text-white/95 mb-2">
+                Tra cứu tiến trình sửa chữa
+              </span>
+              <h1 className="text-xl sm:text-2xl font-extrabold tracking-tight">Trạng Thái Sửa Chữa Thiết Bị</h1>
+              <p className="text-xs text-blue-200 mt-2 flex items-center gap-1.5 font-mono">
+                Mã phiếu: <span className="font-bold text-white bg-white/20 px-2 py-0.5 rounded text-[10px]">{ticket.id}</span>
+              </p>
+            </div>
+
+            <div className="p-6 space-y-8">
+              
+              {/* Stepper / Timeline */}
+              <div className="space-y-4">
+                <div className="relative flex justify-between items-center max-w-lg mx-auto w-full">
+                  {/* Line backdrop */}
+                  <div className="absolute left-6 right-6 top-1/2 -translate-y-1/2 h-1 bg-slate-200 rounded pointer-events-none -z-0">
+                    <div 
+                      className="h-full bg-blue-600 transition-all duration-500 rounded" 
+                      style={{ width: isReturned ? '100%' : isProcessing ? '50%' : '0%' }}
+                    />
+                  </div>
+
+                  {/* Step 1: RECEIVED */}
+                  <div className="flex flex-col items-center gap-2 relative z-10 w-24 text-center">
+                    <div className="w-9 h-9 rounded-full flex items-center justify-center border-2 font-bold text-sm transition-all shadow-md bg-blue-600 text-white border-blue-600 ring-4 ring-blue-50">
+                      <Check size={16} />
+                    </div>
+                    <span className="text-[11px] font-bold text-slate-700 uppercase tracking-wide">Đã nhận</span>
+                    <span className="text-[9px] font-medium text-slate-400">{ticket.receiveDate}</span>
+                  </div>
+
+                  {/* Step 2: PROCESSING */}
+                  <div className="flex flex-col items-center gap-2 relative z-10 w-24 text-center">
+                    <div className={`w-9 h-9 rounded-full flex items-center justify-center border-2 font-bold text-sm transition-all shadow-md ${isProcessing ? 'bg-amber-500 text-white border-amber-500 ring-4 ring-amber-50' : 'bg-white text-slate-400 border-slate-200'}`}>
+                      {isReturned ? <Check size={16} /> : isProcessing ? <Clock size={16} className="animate-spin" /> : '2'}
+                    </div>
+                    <span className={`text-[11px] font-bold uppercase tracking-wide ${isProcessing ? 'text-amber-600 font-extrabold' : 'text-slate-400'}`}>Đang xử lý</span>
+                    <span className="text-[9px] font-medium text-slate-400">{isProcessing ? 'Đang thực hiện' : 'Chờ xử lý'}</span>
+                  </div>
+
+                  {/* Step 3: RETURNED */}
+                  <div className="flex flex-col items-center gap-2 relative z-10 w-24 text-center">
+                    <div className={`w-9 h-9 rounded-full flex items-center justify-center border-2 font-bold text-sm transition-all shadow-md ${isReturned ? 'bg-emerald-600 text-white border-emerald-600 ring-4 ring-emerald-50' : 'bg-white text-slate-400 border-slate-200'}`}>
+                      {isReturned ? <Check size={16} /> : '3'}
+                    </div>
+                    <span className={`text-[11px] font-bold uppercase tracking-wide ${isReturned ? 'text-emerald-600 font-extrabold' : 'text-slate-400'}`}>Đã trả</span>
+                    <span className="text-[9px] font-medium text-slate-400">{ticket.returnDate || '---'}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Patient/Customer Information */}
+              <div className="bg-slate-50 border border-slate-100 rounded-2xl p-5 space-y-4">
+                <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5 border-b border-slate-200/60 pb-2">
+                  <FileText size={14} className="text-blue-500" />
+                  Thông tin bàn giao & tiếp nhận
+                </h3>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                  <div className="space-y-1">
+                    <span className="text-xs font-semibold text-slate-400 block">Tên khách hàng / Người liên hệ</span>
+                    <span className="font-extrabold text-slate-800 text-base">{customerFullName}</span>
+                  </div>
+                  <div className="space-y-1">
+                    <span className="text-xs font-semibold text-slate-400 block">Đơn vị sử dụng</span>
+                    <span className="font-bold text-blue-600 text-sm uppercase">{orgName}</span>
+                  </div>
+                  {customerPhone && (
+                    <div className="space-y-1 col-span-1">
+                      <span className="text-xs font-semibold text-slate-400 block">Số điện thoại liên hệ</span>
+                      <span className="font-semibold text-slate-700 flex items-center gap-1.5 font-mono">
+                        <Phone size={14} className="text-slate-400" />
+                        {customerPhone}
+                      </span>
+                    </div>
+                  )}
+                  {customerAddress && (
+                    <div className="space-y-1 col-span-1 md:col-span-2">
+                      <span className="text-xs font-semibold text-slate-400 block">Địa chỉ nhận/trả</span>
+                      <span className="font-medium text-slate-600 flex items-start gap-1.5">
+                        <MapPin size={14} className="text-slate-400 mt-0.5 flex-shrink-0" />
+                        {customerAddress}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Device and Condition */}
+              <div className="border border-slate-100 rounded-2xl p-5 space-y-4">
+                <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5 border-b border-slate-200/60 pb-2">
+                  <Laptop size={14} className="text-blue-500" />
+                  Thông tin thiết bị tiếp nhận
+                </h3>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                  <div className="space-y-1">
+                    <span className="text-xs font-semibold text-slate-400 block">Loại thiết bị</span>
+                    <span className="px-2.5 py-0.5 font-bold text-blue-700 bg-blue-50 rounded border border-blue-100 text-xs inline-block">
+                      {ticket.deviceType}
+                    </span>
+                  </div>
+                  <div className="space-y-1">
+                    <span className="text-xs font-semibold text-slate-400 block">Số Serial / Model</span>
+                    <span className="font-mono bg-slate-100 px-2 py-0.5 rounded text-xs font-bold text-slate-700 inline-block font-sans">
+                      {ticket.serialNumber || 'N/A'}
+                    </span>
+                  </div>
+                  <div className="space-y-1 col-span-1 md:col-span-2">
+                    <span className="text-xs font-semibold text-slate-400 block">Tình trạng lúc bàn giao</span>
+                    <p className="bg-amber-50/50 border border-amber-100/70 text-slate-700 p-3 rounded-xl text-xs font-medium leading-relaxed">
+                      ⚠️ {ticket.deviceCondition}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Shipping / Return Block (If status is RETURNED) */}
+              {isReturned && (
+                <div className="bg-emerald-50/30 border border-emerald-100 rounded-2xl p-5 space-y-4 animate-in fade-in duration-300 font-sans">
+                  <h3 className="text-xs font-bold text-emerald-800 uppercase tracking-widest flex items-center gap-1.5 border-b border-emerald-100/60 pb-2">
+                    <Truck size={14} className="text-emerald-600" />
+                    Thông tin bàn giao & Vận chuyển xuất xưởng
+                  </h3>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                    <div className="space-y-1">
+                      <span className="text-xs font-semibold text-emerald-600/70 block">Ngày giao trả</span>
+                      <span className="font-bold text-slate-800">{ticket.returnDate || '---'}</span>
+                    </div>
+                    <div className="space-y-1">
+                      <span className="text-xs font-semibold text-emerald-600/70 block">Hình thức bàn giao</span>
+                      <span className="px-2 py-0.5 bg-emerald-100 border border-emerald-200 text-emerald-800 font-bold text-xs rounded inline-block">
+                        {ticket.shippingMethod || 'Trực tiếp'}
+                      </span>
+                    </div>
+                    {ticket.trackingNumber && (
+                      <div className="space-y-1 col-span-1 md:col-span-2">
+                        <span className="text-xs font-semibold text-emerald-600/70 block">Mã vận đơn / Số vận đơn</span>
+                        <div className="flex gap-2 items-center">
+                          <span className="font-mono bg-white border border-emerald-200 text-emerald-700 px-3 py-1 rounded-xl text-xs font-bold">
+                            {ticket.trackingNumber}
+                          </span>
+                          <button 
+                            type="button"
+                            onClick={() => {
+                              navigator.clipboard.writeText(ticket.trackingNumber || '');
+                              alert('Đã sao chép mã vận đơn!');
+                            }} 
+                            className="p-1.5 rounded-lg bg-white border border-emerald-200 text-emerald-600 hover:bg-emerald-50 active:scale-95 transition-all"
+                            title="Sao chép"
+                          >
+                            <Copy size={12} />
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                    {ticket.returnNote && (
+                      <div className="space-y-1 col-span-1 md:col-span-2">
+                        <span className="text-xs font-semibold text-emerald-600/70 block">Ghi chú xuất xưởng / khắc phục</span>
+                        <p className="bg-white border border-emerald-100 text-slate-600 p-3 rounded-xl text-xs leading-relaxed">
+                          {ticket.returnNote}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Thank you note */}
+              <div className="text-center py-4 text-slate-400 font-medium text-xs">
+                <div>Cảm ơn quý khách đã tin tưởng sử dụng dịch vụ của chúng tôi!</div>
+                <div className="mt-1 font-semibold text-slate-400 uppercase tracking-widest text-[9px]">Sơn La Smart Technologies</div>
+              </div>
+            </div>
+
+            {/* Back button to Login */}
+            <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex justify-center">
+              <a 
+                href="/login"
+                className="flex items-center gap-1.5 text-xs font-bold text-slate-400 hover:text-slate-600 transition-colors"
+                id="back_to_login_btn"
+              >
+                <LogIn size={14} />
+                Đăng nhập hệ thống quản lý
+              </a>
+            </div>
+            
           </div>
         </div>
       );

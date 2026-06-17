@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Customer, RepairTicket, DeviceType, RepairStatus, ShippingMethod, Organization, Device } from '../types';
 import { StorageService } from '../services/storage';
-import { Plus, Search, Filter, AlertCircle, CheckCircle2, Clock, Truck, ChevronRight, X, History, Download, ChevronLeft, Loader2, Trash2, UserPlus, UserCheck, Barcode, Eye, Wrench } from 'lucide-react';
+import { Plus, Search, Filter, AlertCircle, CheckCircle2, Clock, Truck, ChevronRight, X, History, Download, ChevronLeft, Loader2, Trash2, UserPlus, UserCheck, Barcode, Eye, Wrench, Copy, Check, QrCode } from 'lucide-react';
+import { QRCodeCanvas } from 'qrcode.react';
 import { HistoryModal } from '../components/HistoryModal';
 import { DeviceIcon } from '../components/DeviceIcon';
 import { ShippingStatusBadge } from '../components/ShippingStatusBadge';
@@ -25,6 +26,8 @@ export const RepairsPage: React.FC = () => {
   const [historyTickets, setHistoryTickets] = useState<RepairTicket[]>([]);
 
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [activeTicketId, setActiveTicketId] = useState<string>('');
+  const [copied, setCopied] = useState(false);
   const [formData, setFormData] = useState<Partial<RepairTicket>>({});
   
   const [isAddingNewCustomer, setIsAddingNewCustomer] = useState(false);
@@ -196,7 +199,7 @@ export const RepairsPage: React.FC = () => {
     }
 
     const newTicket: RepairTicket = {
-      id: editingId || crypto.randomUUID(),
+      id: activeTicketId || editingId || crypto.randomUUID(),
       customerId: finalCustomerId,
       deviceType: formData.deviceType as DeviceType,
       serialNumber: formData.serialNumber?.trim() || '',
@@ -228,12 +231,16 @@ export const RepairsPage: React.FC = () => {
   const openModal = (ticket?: RepairTicket) => {
     setIsAddingNewCustomer(ticket ? false : true);
     setNewCustomerData({ fullName: '', organizationId: '', phone: '', address: '' });
+    setCopied(false);
     
     if (ticket) {
       setEditingId(ticket.id);
+      setActiveTicketId(ticket.id);
       setFormData({ ...ticket });
     } else {
       setEditingId(null);
+      const newId = crypto.randomUUID();
+      setActiveTicketId(newId);
       setFormData({
         status: RepairStatus.RECEIVED,
         receiveDate: new Date().toISOString().split('T')[0],
@@ -249,7 +256,9 @@ export const RepairsPage: React.FC = () => {
   const closeModal = () => {
     setIsModalOpen(false);
     setEditingId(null);
+    setActiveTicketId('');
     setFormData({});
+    setCopied(false);
   };
 
   const openDeviceHistory = (e: React.MouseEvent, ticket: RepairTicket) => {
@@ -296,7 +305,9 @@ export const RepairsPage: React.FC = () => {
     if (isAddingNewCustomer) {
       return {
         name: newCustomerData.fullName || 'Đang nhập tên...',
-        org: organizations.find(o => o.id === newCustomerData.organizationId)?.name || 'Chưa chọn đơn vị'
+        org: organizations.find(o => o.id === newCustomerData.organizationId)?.name || 'Chưa chọn đơn vị',
+        phone: newCustomerData.phone || '',
+        address: newCustomerData.address || ''
       };
     }
     
@@ -306,14 +317,18 @@ export const RepairsPage: React.FC = () => {
       const org = organizations.find(o => o.id === orgId);
       return {
         name: `Đại diện ${org?.name || 'Đơn vị'}`,
-        org: org?.name || '---'
+        org: org?.name || '---',
+        phone: '',
+        address: org?.address || ''
       };
     }
     
     const cust = getCustomer(cid);
     return {
       name: cust?.fullName || 'Chưa chọn khách hàng',
-      org: getOrgName(cid) || '---'
+      org: getOrgName(cid) || '---',
+      phone: cust?.phone || '',
+      address: cust?.address || ''
     };
   };
 
@@ -335,6 +350,14 @@ export const RepairsPage: React.FC = () => {
 
   const currentOrgId = getCurrentOrgId();
   const orgDevices = currentOrgId ? devices.filter(d => d.organizationId === currentOrgId) : [];
+
+  const trackerUrl = `https://qltb.sonlasmart.com/devices?id=${activeTicketId}`;
+
+  const handleCopyLink = () => {
+    navigator.clipboard.writeText(trackerUrl);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   return (
     <div className="space-y-6">
@@ -641,21 +664,78 @@ export const RepairsPage: React.FC = () => {
                 </div>
               </div>
 
-              <div className="w-full lg:w-80 bg-slate-50 p-6">
-                <div className="flex items-center gap-2 text-slate-400 mb-6">
-                  <Eye size={18} />
-                  <h4 className="text-[11px] font-bold uppercase tracking-widest">Xem trước</h4>
-                </div>
-                <div className="bg-white rounded-2xl shadow-xl border border-white overflow-hidden p-5 space-y-4">
-                   <div className="text-[10px] uppercase font-bold text-slate-400">Phiếu tiếp nhận</div>
-                   <div className="font-bold text-slate-900 leading-tight">{currentPreviewCustomer}</div>
-                   <div className="text-[11px] font-bold text-blue-600 uppercase">{currentPreviewOrg}</div>
-                   <div className="pt-4 border-t border-slate-100 flex justify-between items-center">
-                      <span className="text-sm font-bold text-slate-700">{formData.receiveDate || '---'}</span>
-                      <span className={`px-2 py-1 rounded-lg border text-[9px] font-bold uppercase ${statusColors[formData.status as RepairStatus || RepairStatus.RECEIVED]}`}>
-                        {formData.status || 'RECEIVED'}
-                      </span>
-                   </div>
+              <div className="w-full lg:w-80 bg-slate-50 p-6 flex flex-col justify-between overflow-y-auto">
+                <div>
+                  <div className="flex items-center gap-2 text-slate-400 mb-6 font-sans">
+                    <Eye size={18} />
+                    <h4 className="text-[11px] font-bold uppercase tracking-widest">Xem trước</h4>
+                  </div>
+                  <div className="bg-white rounded-2xl shadow-xl border border-white overflow-hidden p-5 space-y-4">
+                     <div className="text-[10px] uppercase font-bold text-slate-400 font-sans">Phiếu tiếp nhận</div>
+                     <div className="font-bold text-slate-900 leading-tight font-sans">{currentPreviewCustomer}</div>
+                     <div className="text-[11px] font-bold text-blue-600 uppercase font-sans">{currentPreviewOrg}</div>
+                     
+                     {(previewInfo.phone || previewInfo.address) && (
+                       <div className="pt-3 border-t border-slate-100 space-y-1.5 font-sans">
+                         {previewInfo.phone && (
+                           <p className="text-[11px] text-slate-600 flex items-center gap-1.5 font-medium">
+                             <span className="text-slate-400 font-bold">SĐT:</span> {previewInfo.phone}
+                           </p>
+                         )}
+                         {previewInfo.address && (
+                           <p className="text-[11px] text-slate-600 flex items-start gap-1.5 font-medium line-clamp-2" title={previewInfo.address}>
+                             <span className="text-slate-400 font-bold">ĐC:</span> {previewInfo.address}
+                           </p>
+                         )}
+                       </div>
+                     )}
+
+                     <div className="pt-4 border-t border-slate-100 flex justify-between items-center font-sans">
+                        <span className="text-xs font-bold text-slate-600">{formData.receiveDate || '---'}</span>
+                        <span className={`px-2 py-0.5 rounded-lg border text-[9px] font-bold uppercase ${statusColors[formData.status as RepairStatus || RepairStatus.RECEIVED]}`}>
+                          {formData.status || 'RECEIVED'}
+                        </span>
+                     </div>
+                  </div>
+
+                  {/* QR-code & Tracking Link section */}
+                  <div className="mt-8 pt-6 border-t border-slate-200/60 space-y-5 font-sans">
+                    <div className="flex items-center gap-2 text-slate-500">
+                      <QrCode size={18} />
+                      <h5 className="text-[11px] font-bold uppercase tracking-wider">Mã QR & Link Theo Dõi</h5>
+                    </div>
+                    
+                    <div className="bg-white p-4 rounded-2xl border border-slate-250/20 shadow-md flex flex-col items-center justify-center gap-3 select-none">
+                      <QRCodeCanvas
+                        value={trackerUrl}
+                        size={128}
+                        level="Q"
+                        includeMargin={true}
+                        className="rounded-lg shadow-inner"
+                      />
+                      <p className="text-[10px] text-slate-450 font-bold tracking-widest text-[#5e6a7e]">QUÉT THEO DÕI TIẾN TRÌNH</p>
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="block text-[10px] font-extrabold text-slate-400 uppercase tracking-widest leading-relaxed">ĐƯỜNG DẪN QUÉT (URL)</label>
+                      <div className="flex gap-2">
+                        <input 
+                          type="text" 
+                          readOnly 
+                          value={trackerUrl} 
+                          className="flex-1 px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-mono text-slate-500 truncate shadow-sm focus:outline-none"
+                        />
+                        <button 
+                          type="button"
+                          onClick={handleCopyLink}
+                          className={`p-2 rounded-xl border transition-all flex items-center justify-center ${copied ? 'bg-emerald-50 text-emerald-600 border-emerald-200' : 'bg-white text-slate-500 hover:text-slate-700 border-slate-200 active:scale-95 shadow-sm'}`}
+                          title="Sao chép link theo dõi"
+                        >
+                          {copied ? <Check size={16} /> : <Copy size={16} />}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>

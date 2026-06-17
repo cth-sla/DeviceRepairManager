@@ -37,8 +37,10 @@ const PublicRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
 const DevicesRoute: React.FC = () => {
   const { session } = useAuth();
+  const searchParams = new URLSearchParams(window.location.search);
+  const isPublicView = searchParams.has('id');
   
-  if (session) {
+  if (session && !isPublicView) {
     return <Layout><DevicesPage /></Layout>;
   }
   return <DevicesPage />;
