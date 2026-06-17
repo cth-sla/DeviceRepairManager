@@ -1,5 +1,5 @@
 import React from 'react';
-import { LayoutDashboard, Users, Wrench, Package, Menu, X, Building, ShieldCheck, LogOut, Wifi, WifiOff, Cog, BarChart3 } from 'lucide-react';
+import { LayoutDashboard, Users, Wrench, Package, Menu, X, Building, ShieldCheck, LogOut, Wifi, WifiOff, Cog, BarChart3, ChevronsLeft, ChevronsRight } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -9,8 +9,19 @@ interface LayoutProps {
 
 export const Layout: React.FC<LayoutProps> = ({ children }) => {
   const [isSidebarOpen, setIsSidebarOpen] = React.useState(false);
+  const [isCollapsed, setIsCollapsed] = React.useState(() => {
+    return localStorage.getItem('sidebar-collapsed') === 'true';
+  });
   const location = useLocation();
   const { signOut, session, isOfflineMode } = useAuth();
+
+  const toggleCollapse = () => {
+    setIsCollapsed(prev => {
+      const nextSetting = !prev;
+      localStorage.setItem('sidebar-collapsed', String(nextSetting));
+      return nextSetting;
+    });
+  };
 
   const navItems = [
     { label: 'Tổng quan', path: '/', icon: <LayoutDashboard size={20} /> },
@@ -45,15 +56,23 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
       {/* Sidebar */}
       <aside 
         className={`
-          fixed lg:static inset-y-0 left-0 z-30 w-64 bg-slate-900/80 backdrop-blur-md text-white transform transition-transform duration-200 ease-in-out flex flex-col border-r border-slate-700/50
+          fixed lg:static inset-y-0 left-0 z-30 bg-slate-900/80 backdrop-blur-md text-white transform transition-all duration-300 ease-in-out flex flex-col border-r border-slate-700/50
           ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+          ${isCollapsed ? 'w-64 lg:w-20' : 'w-64'}
         `}
       >
-        <div className="flex items-center justify-between p-6 border-b border-slate-700/50">
-          <div className="flex items-center space-x-3">
-            <Cog className="text-blue-500 animate-[spin_10s_linear_infinite]" size={28} />
-            <span className="text-xl font-bold tracking-tight">Device Manager</span>
+        <div className={`flex items-center border-b border-slate-700/50 transition-all duration-300 ${isCollapsed ? 'lg:flex-col lg:p-4 lg:gap-3 lg:justify-center' : 'justify-between p-6'}`}>
+          <div className={`flex items-center transition-all duration-300 ${isCollapsed ? 'lg:space-x-0 lg:justify-center' : 'space-x-3'}`}>
+            <Cog className="text-blue-500 animate-[spin_10s_linear_infinite] flex-shrink-0" size={28} />
+            <span className={`text-xl font-bold tracking-tight transition-all duration-300 ${isCollapsed ? 'lg:hidden' : 'block'}`}>Device Manager</span>
           </div>
+          <button 
+            onClick={toggleCollapse} 
+            className="hidden lg:flex items-center justify-center text-slate-400 hover:text-white hover:bg-slate-800/80 p-2 rounded-xl transition-all border border-transparent hover:border-slate-700/50 cursor-pointer"
+            title={isCollapsed ? "Hiện menu (>>)" : "Ẩn menu (<<)"}
+          >
+            {isCollapsed ? <ChevronsRight size={20} /> : <ChevronsLeft size={20} />}
+          </button>
           <button onClick={() => setIsSidebarOpen(false)} className="lg:hidden text-slate-400 hover:text-white">
             <X size={24} />
           </button>
@@ -66,40 +85,53 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
               to={item.path}
               onClick={() => setIsSidebarOpen(false)}
               className={`
-                flex items-center space-x-3 px-4 py-3 rounded-lg transition-all duration-200
+                flex items-center transition-all duration-200 rounded-lg
+                ${isCollapsed ? 'lg:justify-center lg:px-2 lg:py-3' : 'space-x-3 px-4 py-3'}
                 ${isActive(item.path) 
                   ? 'bg-blue-600/90 text-white shadow-lg shadow-blue-500/20' 
                   : 'text-slate-400 hover:bg-slate-800/50 hover:text-white'}
               `}
+              title={isCollapsed ? item.label : undefined}
             >
-              {item.icon}
-              <span className="font-medium">{item.label}</span>
+              <div className="flex-shrink-0">{item.icon}</div>
+              <span className={`font-medium transition-all duration-300 whitespace-nowrap ${isCollapsed ? 'lg:hidden' : 'block'}`}>{item.label}</span>
             </Link>
           ))}
         </nav>
 
         {/* Status Indicator */}
-        <div className={`px-4 py-2 mx-4 rounded text-[10px] uppercase font-bold tracking-wider flex items-center justify-center gap-2 ${isOfflineMode ? 'bg-amber-900/30 text-amber-400 border border-amber-900/50' : 'bg-blue-900/30 text-blue-400 border border-blue-900/50'}`}>
-           {isOfflineMode ? <WifiOff size={14} /> : <Wifi size={14} />}
-           <span>{isOfflineMode ? 'Chế độ Offline' : 'Đã kết nối Online'}</span>
+        <div 
+          className={`
+            transition-all duration-300 uppercase font-bold tracking-wider flex items-center justify-center
+            ${isCollapsed ? 'lg:w-10 lg:h-10 lg:mx-auto lg:p-0 lg:rounded-full' : 'px-4 py-2 mx-4 rounded text-[10px] gap-2'}
+            ${isOfflineMode ? 'bg-amber-900/30 text-amber-400 border border-amber-900/50' : 'bg-blue-900/30 text-blue-400 border border-blue-900/50'}
+          `}
+          title={isOfflineMode ? 'Chế độ Offline' : 'Đã kết nối Online'}
+        >
+          {isOfflineMode ? <WifiOff size={14} className="flex-shrink-0" /> : <Wifi size={14} className="flex-shrink-0" />}
+          <span className={`transition-all duration-300 ${isCollapsed ? 'lg:hidden' : 'block text-[10px]'}`}>{isOfflineMode ? 'Offline' : 'Online'}</span>
         </div>
 
-        <div className="p-4 border-t border-slate-700/50 bg-slate-900/50 mt-2">
-          <div className="flex items-center gap-3 mb-3 px-2">
-            <div className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center text-blue-400 font-bold text-xs border border-slate-600">
+        <div className={`p-4 border-t border-slate-700/50 bg-slate-900/50 mt-2 transition-all duration-300 ${isCollapsed ? 'lg:px-2 lg:py-4 lg:flex lg:flex-col lg:items-center lg:gap-4' : ''}`}>
+          <div 
+            className={`flex items-center transition-all duration-300 ${isCollapsed ? 'lg:flex-col lg:gap-1 lg:p-0' : 'gap-3 mb-3 px-2'}`}
+            title={session?.user.email || ''}
+          >
+            <div className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center text-blue-400 font-bold text-xs border border-slate-600 flex-shrink-0 transition-transform duration-300">
               {session?.user.email?.substring(0,2).toUpperCase()}
             </div>
-            <div className="flex-1 overflow-hidden">
+            <div className={`flex-1 overflow-hidden transition-all duration-300 ${isCollapsed ? 'lg:hidden' : 'block'}`}>
               <p className="text-sm font-medium text-white truncate">{session?.user.email}</p>
               <p className="text-[10px] uppercase tracking-widest text-slate-500">Administrator</p>
             </div>
           </div>
           <button 
             onClick={() => signOut()}
-            className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg transition-colors text-sm font-medium"
+            className={`flex items-center justify-center bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg transition-all duration-300 text-sm font-medium ${isCollapsed ? 'lg:w-10 lg:h-10 lg:p-0' : 'w-full gap-2 px-4 py-2'}`}
+            title="Đăng xuất"
           >
-            <LogOut size={16} />
-            Đăng xuất
+            <LogOut size={16} className="flex-shrink-0" />
+            <span className={`transition-all duration-300 ${isCollapsed ? 'lg:hidden' : 'block'}`}>Đăng xuất</span>
           </button>
         </div>
       </aside>
