@@ -167,7 +167,7 @@ export const WarrantyPage: React.FC = () => {
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
   const paginatedTickets = filteredTickets.slice(startIndex, startIndex + ITEMS_PER_PAGE);
 
-  const orgDevices = formData.organizationId ? devices.filter(d => d.organizationId === formData.organizationId) : [];
+  const retrievedDevices = devices.filter(d => d.isRetrieved === true);
 
   return (
     <div className="space-y-6">
@@ -340,15 +340,15 @@ export const WarrantyPage: React.FC = () => {
                   </div>
 
                   <div className="space-y-4">
-                    {orgDevices.length > 0 && (
-                      <div className="p-4 bg-indigo-50/50 rounded-xl border border-indigo-100 flex flex-col gap-2.5 animate-in fade-in duration-200">
-                        <span className="text-[11px] font-bold text-indigo-700 uppercase tracking-wider flex items-center gap-1">
-                          <Barcode size={14} className="text-indigo-600" /> Chọn thiết bị sẵn có của đơn vị sử dụng:
+                    {retrievedDevices.length > 0 && (
+                      <div className="p-4 bg-purple-50/50 rounded-xl border border-purple-100 flex flex-col gap-2.5 animate-in fade-in duration-200">
+                        <span className="text-[11px] font-bold text-purple-700 uppercase tracking-wider flex items-center gap-1">
+                          <Barcode size={14} className="text-purple-600" /> Chọn thiết bị từ Kho Hàng Thu Hồi:
                         </span>
                         
                         <select
-                          className="w-full px-3 py-2 border border-indigo-200 focus:ring-2 focus:ring-indigo-500 bg-white rounded-lg text-sm font-semibold text-slate-700"
-                          value={orgDevices.some(d => d.serialNumber === formData.serialNumber) ? (formData.serialNumber || '') : 'custom'}
+                          className="w-full px-3 py-2 border border-purple-200 focus:ring-2 focus:ring-purple-500 bg-white rounded-lg text-sm font-semibold text-slate-700"
+                          value={retrievedDevices.some(d => d.serialNumber === formData.serialNumber) ? (formData.serialNumber || '') : 'custom'}
                           onChange={(e) => {
                             const val = e.target.value;
                             if (val === 'custom') {
@@ -357,7 +357,7 @@ export const WarrantyPage: React.FC = () => {
                                 serialNumber: ''
                               }));
                             } else {
-                              const found = orgDevices.find(d => d.serialNumber === val);
+                              const found = retrievedDevices.find(d => d.serialNumber === val);
                               if (found) {
                                 setFormData(prev => ({
                                   ...prev,
@@ -368,13 +368,13 @@ export const WarrantyPage: React.FC = () => {
                             }
                           }}
                         >
-                          <option value="">-- Chọn thiết bị trong danh sách --</option>
-                          {orgDevices.map(d => (
+                          <option value="">-- Chọn thiết bị thu hồi --</option>
+                          {retrievedDevices.map(d => (
                             <option key={d.id} value={d.serialNumber || ''}>
-                              📦 {d.name} {d.serialNumber ? `(SN: ${d.serialNumber})` : '(Không có serial)'} [Loại: {d.deviceType}]
+                              📥 {d.name} {d.serialNumber ? `(SN: ${d.serialNumber})` : '(Không có serial)'} [Loại: {d.deviceType}]
                             </option>
                           ))}
-                          <option value="custom">➕ Nhập số serial của thiết bị khác / Nhập tay...</option>
+                          <option value="custom">➕ Nhập số serial khác / Nhập tay...</option>
                         </select>
                       </div>
                     )}
