@@ -73,6 +73,7 @@ create table if not exists public.devices (
     start_time text,
     organization_id uuid references public.organizations(id) on delete set null,
     is_reserve boolean default false,
+    is_retrieved boolean default false,
     created_at bigint
 );
 
@@ -87,6 +88,9 @@ begin
     end if;
     if not exists (select 1 from information_schema.columns where table_name='devices' and column_name='is_reserve') then
         alter table public.devices add column is_reserve boolean default false;
+    end if;
+    if not exists (select 1 from information_schema.columns where table_name='devices' and column_name='is_retrieved') then
+        alter table public.devices add column is_retrieved boolean default false;
     end if;
 end $$;
 

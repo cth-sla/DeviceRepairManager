@@ -20,6 +20,7 @@ export interface Device {
   organizationId?: string;
   createdAt: number;
   isReserve?: boolean;
+  isRetrieved?: boolean;
 }
 
 export enum ShippingMethod {

@@ -321,7 +321,8 @@ export const StorageService = {
         startTime: row.start_time || row.startTime || '',
         organizationId: row.organization_id || row.organizationId,
         createdAt: row.created_at || row.createdAt || Date.now(),
-        isReserve: row.is_reserve !== undefined ? row.is_reserve : (row.isReserve || false)
+        isReserve: row.is_reserve !== undefined ? row.is_reserve : (row.isReserve || false),
+        isRetrieved: row.is_retrieved !== undefined ? row.is_retrieved : (row.isRetrieved || false)
       })) || [];
     } catch (e) {
       console.error('Error fetching devices:', e);
@@ -340,7 +341,8 @@ export const StorageService = {
       start_time: d.startTime,
       organization_id: d.organizationId || null,
       created_at: d.createdAt,
-      is_reserve: d.isReserve || false
+      is_reserve: d.isReserve || false,
+      is_retrieved: d.isRetrieved || false
     };
     const { error } = await supabase.from('devices').insert([dbRow]);
     if (error) {
@@ -358,7 +360,8 @@ export const StorageService = {
       quantity: d.quantity,
       start_time: d.startTime,
       organization_id: d.organizationId || null,
-      is_reserve: d.isReserve || false
+      is_reserve: d.isReserve || false,
+      is_retrieved: d.isRetrieved || false
     };
     const { error } = await supabase.from('devices').update(dbRow).eq('id', d.id);
     if (error) {

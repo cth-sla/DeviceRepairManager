@@ -40,7 +40,8 @@ export const DevicesPage: React.FC = () => {
     quantity: 1,
     startTime: new Date().toISOString().split('T')[0],
     organizationId: '',
-    isReserve: false
+    isReserve: false,
+    isRetrieved: false
   });
 
   useEffect(() => {
@@ -197,16 +198,28 @@ export const DevicesPage: React.FC = () => {
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      const isTransitionFromReserve = editingDevice?.isReserve && !formData.isReserve;
+      const finalReserve = formData.organizationId ? false : formData.isReserve;
+      const finalRetrieved = formData.organizationId 
+        ? false 
+        : isTransitionFromReserve 
+          ? true 
+          : (formData.isRetrieved ?? false);
+
       if (editingDevice) {
         const updatedDevice: Device = {
           ...editingDevice,
-          ...formData
+          ...formData,
+          isReserve: finalReserve,
+          isRetrieved: finalRetrieved
         };
         await StorageService.updateDevice(updatedDevice);
       } else {
         const newDevice: Device = {
           id: crypto.randomUUID(),
           ...formData,
+          isReserve: finalReserve,
+          isRetrieved: finalRetrieved,
           createdAt: Date.now()
         };
         await StorageService.addDevice(newDevice);
@@ -234,9 +247,11 @@ export const DevicesPage: React.FC = () => {
 
   const handleToggleReserve = async (device: Device) => {
     try {
+      const willBeReserve = !device.isReserve;
       const updated: Device = {
         ...device,
-        isReserve: !device.isReserve
+        isReserve: willBeReserve,
+        isRetrieved: !willBeReserve ? true : false
       };
       await StorageService.updateDevice(updated);
       loadDevices();
@@ -254,7 +269,8 @@ export const DevicesPage: React.FC = () => {
       quantity: 1,
       startTime: new Date().toISOString().split('T')[0],
       organizationId: '',
-      isReserve: false
+      isReserve: false,
+      isRetrieved: false
     });
   };
 
@@ -273,7 +289,8 @@ export const DevicesPage: React.FC = () => {
       quantity: device.quantity,
       startTime: device.startTime,
       organizationId: device.organizationId || '',
-      isReserve: device.isReserve || false
+      isReserve: device.isReserve || false,
+      isRetrieved: device.isRetrieved || false
     });
     setIsModalOpen(true);
   };
@@ -1053,6 +1070,10 @@ export const DevicesPage: React.FC = () => {
                         <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-amber-500/10 text-amber-600 border border-amber-500/20 shadow-sm animate-pulse">
                           ⚡ Thiết bị Dự trữ
                         </span>
+                      ) : device.isRetrieved ? (
+                        <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-purple-500/10 text-purple-600 border border-purple-500/20 shadow-sm">
+                          📥 Hàng thu hồi
+                        </span>
                       ) : !device.organizationId || device.organizationId === '' ? (
                         <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-500/10 text-slate-500 border border-slate-500/10">
                           📦 Hàng tồn kho
@@ -1068,7 +1089,7 @@ export const DevicesPage: React.FC = () => {
                         {(!device.organizationId || device.organizationId === '') && (
                           <button 
                             onClick={() => handleToggleReserve(device)}
-                            title={device.isReserve ? "Chuyển về Hàng tồn kho thường" : "Chuyển làm Thiết bị dự trữ"}
+                            title={device.isReserve ? "Chuyển thành Hàng thu hồi" : "Chuyển làm Thiết bị dự trữ"}
                             className={`p-2 rounded-lg transition-all ${
                               device.isReserve 
                                 ? 'text-amber-500 hover:text-amber-700 hover:bg-amber-100' 
@@ -1262,6 +1283,7 @@ export const DevicesPage: React.FC = () => {
                     setFormData({
                       ...formData,
                       isReserve: checked,
+                      isRetrieved: checked ? false : formData.isRetrieved,
                       organizationId: checked ? '' : formData.organizationId
                     });
                   }}
@@ -1270,6 +1292,26 @@ export const DevicesPage: React.FC = () => {
                   Đặt làm thiết bị dự trữ / dự phòng (Kho hàng)
                 </label>
               </div>
+
+              {!formData.organizationId && !formData.isReserve && (
+                <div className="flex items-center gap-2.5 p-3 bg-slate-50 border border-slate-200 rounded-xl animate-in fade-in slide-in-from-top-1 duration-200">
+                  <input 
+                    type="checkbox"
+                    id="isRetrievedCheckbox"
+                    className="w-4 h-4 text-purple-600 border-slate-300 rounded focus:ring-purple-500 cursor-pointer"
+                    checked={formData.isRetrieved}
+                    onChange={(e) => {
+                      setFormData({
+                        ...formData,
+                        isRetrieved: e.target.checked
+                      });
+                    }}
+                  />
+                  <label htmlFor="isRetrievedCheckbox" className="text-sm font-semibold text-slate-700 cursor-pointer select-none">
+                    Xác nhận đây là Hàng thu hồi (Thiết bị hỏng/đã cũ)
+                  </label>
+                </div>
+              )}
               <div className="flex gap-3 pt-4">
                 <button 
                   type="button"
